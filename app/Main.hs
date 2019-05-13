@@ -24,7 +24,7 @@ main = do
       return $
         Task
           Nothing
-          (picosecondsToDiffTime $ read t * 3600 * 10 ^ (12 :: Int))
+          (picosecondsToDiffTime $ round $ (read t :: Double) * 3600 * 10 ^ (12 :: Int))
           (read i)
           (addDays (read d) $ utctDay time)
           n
