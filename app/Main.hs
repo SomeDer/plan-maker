@@ -29,4 +29,5 @@ main = do
           (addDays (read d) $ utctDay time)
           n
   forM_ (planDay time x []) $ \(Task (Just (TimeRange s e)) _ _ _ n) ->
+    unless (n `elem` ["Now", "Midnight"]) $
     putStrLn $ show s <> " - " <> show e <> " : " <> n
