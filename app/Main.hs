@@ -31,4 +31,4 @@ main = do
   forM_ (planDay time x []) $ \(Task (Just (TimeRange s e)) _ _ _ n) ->
     let f = take 5 . show
      in unless (n `elem` ["Now", "Midnight"]) $
-        putStrLn $ f s <> " - " <> f e <> " : " <> n
+        putStrLn $ f s <> "-" <> f e <> ": " <> n
