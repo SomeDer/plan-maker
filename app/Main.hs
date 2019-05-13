@@ -5,11 +5,22 @@ import Data.Time
 import Plan.Day
 import Plan.Task
 import Plan.TimeRange
+import System.Exit
+import Text.Read
 
 input :: String -> IO String
 input s = do
   putStrLn s
   getLine
+
+checkRead :: Read b => String -> IO b
+checkRead s = do
+  x <- input s
+  case readMaybe x of
+    Just y -> return y
+    Nothing -> do
+      putStrLn "Invalid input!"
+      exitFailure
 
 main :: IO ()
 main = do
@@ -18,15 +29,15 @@ main = do
   x <-
     forM [1 .. (read c :: Int)] $ \_ -> do
       n <- input "Task name: "
-      i <- input "Task importance: "
-      d <- input "Days until deadline: "
-      t <- input "Time needed (hours): "
+      i <- checkRead "Task importance: "
+      d <- checkRead "Days until deadline: "
+      t <- checkRead "Time needed (hours): " :: IO Double
       return $
         Task
           Nothing
-          (picosecondsToDiffTime $ round $ (read t :: Double) * 3600 * 10 ^ (12 :: Int))
-          (read i)
-          (addDays (read d) $ utctDay time)
+          (picosecondsToDiffTime $ round $ t * 3600 * 10 ^ (12 :: Int))
+          i
+          (addDays d $ utctDay time)
           n
   forM_ (planDay time x []) $ \(Task (Just (TimeRange s e)) _ _ _ n) ->
     let f = take 5 . show
