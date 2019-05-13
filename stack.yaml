@@ -37,7 +37,23 @@ packages:
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
-# extra-deps: []
+extra-deps:
+- aeson-1.4.3.0@sha256:49f92cd7bd5e9bb447f0f284785e725f5bebc798ca60baa5438d0eaaece28399
+- attoparsec-0.13.2.2@sha256:51ca172466aa77a7b5802e676577926f0d4991cebeece0a848b7753390da39ae
+- base-compat-0.10.5@sha256:d49e174ed0daecd059c52d13d4f4de87b5609c81212a22adbb92431f9cd58fff
+- dlist-0.8.0.6@sha256:4e17a354ae6aede083e63abc55eeda463774ba6baf8d64de2f0fe6261f3a7938
+- hashable-1.2.7.0@sha256:03b6836ca9cd3ad0e5a2f3cce989b001dd0e05f306a873db3196037adb30e0a4
+- primitive-0.6.4.0@sha256:5b6a2c3cc70a35aabd4565fcb9bb1dd78fe2814a36e62428a9a1aae8c32441a1
+- scientific-0.3.6.2@sha256:dd49abc76bd8e2b57e7a057dc2bb742a00527b4bf9350f9374be03b5934e55d8
+- tagged-0.8.6@sha256:7093ee39c9779beeacffa4b0035a0e8a25da16afcd1c1a876930207fb8e31d1c
+- th-abstraction-0.3.1.0@sha256:96042f6658f2dccfac03b33f0fd59f62b1f65b9b0a765d8a2ea6026f4081ee4a
+- time-locale-compat-0.1.1.5@sha256:24b10ab3de20f5fc00f0e4f7832ac66dd5597033b78cff3bd6b4505d8a652e5b
+- unordered-containers-0.2.10.0@sha256:97cbf75a606c5e4f499828cb11aa8410c5f3a0034b4ef088cf2fad8ca986af33
+- uuid-types-1.0.3@sha256:2cab161f274309cfd9ef62694a6bd1b47525bc4c79a827293b055e4a9eadb4d2
+- vector-0.12.0.3@sha256:b9b7dbf1897b31f815965f526ad131eb4c27ce3a6da4107a3f77ea9df90c7d5a
+- old-locale-1.0.0.7@sha256:fa998be2c7e00cd26a6e9075bea790caaf3932caa3e9497ad69bc20380dd6911
+- random-1.1@sha256:7b67624fd76ddf97c206de0801dc7e888097e9d572974be9b9ea6551d76965df
+- integer-logarithms-1.0.3@sha256:21cdc5661958a703303d2b430220908db8c2c42dbc58db0d7baac1d171f31768
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
