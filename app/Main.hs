@@ -31,6 +31,7 @@ main = do
   case args of
     [] -> printPlan
     ["add"] -> addTask
+    ["rm", n] -> removeTask n
     _ -> error "Invalid!"
 
 printPlan :: IO ()
@@ -78,3 +79,8 @@ setTasks :: [Task] -> IO ()
 setTasks t = do
   home <- getHomeDirectory
   writeFile (home <> "/.plan.json") $ show $ encode t
+
+removeTask :: String -> IO ()
+removeTask n = do
+  t <- getTasks
+  setTasks $ filter ((/= n) . taskName) t
