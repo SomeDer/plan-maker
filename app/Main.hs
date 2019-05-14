@@ -7,6 +7,7 @@ import Plan.Day
 import Plan.Task
 import Plan.TimeRange
 import System.Directory
+import System.Environment
 import System.Exit
 import Text.Read
 
@@ -26,25 +27,49 @@ checkRead s = do
 
 main :: IO ()
 main = do
+  args <- getArgs
+  case args of
+    [] -> printPlan
+    ["add"] -> addTask
+    _ -> error "Invalid!"
+
+printPlan :: IO ()
+printPlan = do
+  t <- getTasks
   time <- getCurrentTime
-  c <- input "Number of tasks: "
-  x <-
-    forM [1 .. (read c :: Int)] $ \_ -> do
-      n <- input "Task name: "
-      i <- checkRead "Task importance: "
-      d <- checkRead "Days until deadline: "
-      t <- checkRead "Time needed (hours): " :: IO Double
-      return $
+  forM_ (planDay time t []) $ \(Task (Just (TimeRange s e)) _ _ _ n) ->
+    let f = take 5 . show
+     in unless (n `elem` ["Now", "Midnight"]) $
+        putStrLn $ f s <> "-" <> f e <> ": " <> n
+
+addTask :: IO ()
+addTask = do
+  time <- getCurrentTime
+  n <- input "Task name: "
+  i <- checkRead "Task importance: "
+  d <- checkRead "Days until deadline: "
+  t <- checkRead "Time needed (hours): " :: IO Double
+  old <- getTasks
+  let new =
         Task
           Nothing
           (picosecondsToDiffTime $ round $ t * 3600 * 10 ^ (12 :: Int))
           i
           (addDays d $ utctDay time)
           n
-  let plan = planDay time x []
-  hd <- getHomeDirectory
-  writeFile (hd <> "/.plan.json") $ show $ encode plan
-  forM_ plan $ \(Task (Just (TimeRange s e)) _ _ _ n) ->
-    let f = take 5 . show
-     in unless (n `elem` ["Now", "Midnight"]) $
-        putStrLn $ f s <> "-" <> f e <> ": " <> n
+  setTasks $ new : old
+
+getTasks :: IO [Task]
+getTasks = do
+  home <- getHomeDirectory
+  t <- readFile $ home <> "/.plan.json"
+  case decode $ read t of
+    Just x -> return x
+    Nothing -> do
+      putStrLn "You edited the plan.json file and now it doesn't work!"
+      exitFailure
+
+setTasks :: [Task] -> IO ()
+setTasks t = do
+  home <- getHomeDirectory
+  writeFile (home <> "/.plan.json") $ show $ encode t
