@@ -62,12 +62,17 @@ addTask = do
 getTasks :: IO [Task]
 getTasks = do
   home <- getHomeDirectory
-  t <- readFile $ home <> "/.plan.json"
-  case decode $ read t of
-    Just x -> return x
-    Nothing -> do
-      putStrLn "You edited the plan.json file and now it doesn't work!"
-      exitFailure
+  let f = home <> "/.plan.json"
+  e <- doesFileExist f
+  if e
+    then do
+      t <- readFile $ home <> "/.plan.json"
+      case decode $ read t of
+        Just y -> return y
+        Nothing -> do
+          putStrLn "You edited the plan.json file and now it doesn't work!"
+          exitFailure
+    else return []
 
 setTasks :: [Task] -> IO ()
 setTasks t = do
