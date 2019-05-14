@@ -33,7 +33,7 @@ ghc-options:
 - -Wall
 
 executables:
-  plan-maker-exe:
+  plan:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
