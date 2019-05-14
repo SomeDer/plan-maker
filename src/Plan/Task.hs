@@ -1,6 +1,10 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Plan.Task where
 
+import Data.Aeson
 import Data.Time
+import GHC.Generics
 import Plan.TimeRange
 
 data Task = Task
@@ -9,7 +13,10 @@ data Task = Task
   , importance :: Int
   , deadline :: Day
   , taskName :: String
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Generic)
+
+instance ToJSON Task
+instance FromJSON Task
 
 instance Ord Task where
   Task (Just (TimeRange s _)) _ _ _ _ <= Task (Just (TimeRange s' _)) _ _ _ _ =

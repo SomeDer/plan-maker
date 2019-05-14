@@ -1,10 +1,12 @@
 module Main where
 
 import Control.Monad
+import Data.Aeson
 import Data.Time
 import Plan.Day
 import Plan.Task
 import Plan.TimeRange
+import System.Directory
 import System.Exit
 import Text.Read
 
@@ -39,7 +41,10 @@ main = do
           i
           (addDays d $ utctDay time)
           n
-  forM_ (planDay time x []) $ \(Task (Just (TimeRange s e)) _ _ _ n) ->
+  let plan = planDay time x []
+  hd <- getHomeDirectory
+  writeFile (hd <> "/.plan.json") $ show $ encode plan
+  forM_ plan $ \(Task (Just (TimeRange s e)) _ _ _ n) ->
     let f = take 5 . show
      in unless (n `elem` ["Now", "Midnight"]) $
         putStrLn $ f s <> "-" <> f e <> ": " <> n
