@@ -25,6 +25,7 @@ dependencies:
 - containers
 - aeson
 - directory
+- optparse-applicative
 
 library:
   source-dirs: src

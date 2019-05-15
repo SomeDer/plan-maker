@@ -54,7 +54,11 @@ extra-deps:
 - old-locale-1.0.0.7@sha256:fa998be2c7e00cd26a6e9075bea790caaf3932caa3e9497ad69bc20380dd6911
 - random-1.1@sha256:7b67624fd76ddf97c206de0801dc7e888097e9d572974be9b9ea6551d76965df
 - integer-logarithms-1.0.3@sha256:21cdc5661958a703303d2b430220908db8c2c42dbc58db0d7baac1d171f31768
-
+- optparse-applicative-0.14.3.0@sha256:fad316f9daa58f6911971b0d3edaa5b54288e560aa06536e92e2299fe19d4946
+- ansi-wl-pprint-0.6.8.2@sha256:a890b713942c1aa0109fb632e9fee581ceb5b0763fd936ae8cae22e5f91a0877
+- transformers-compat-0.6.4@sha256:d298cd9d1bb7b05160229e244436bae825b53660865e3d5fd695ea0fafec1e6f
+- ansi-terminal-0.9@sha256:24e357bccd882add0d9caee63136d6b7923aaa9e36ed515097230dca82b0065c
+- colour-2.3.5@sha256:b27db0a3ad40d70bdbd8510a104269f8707592e80757a1abc66a22ba25e5a42f
 # Override default flag values for local packages and extra-deps
 # flags: {}
 

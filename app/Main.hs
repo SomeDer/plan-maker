@@ -3,6 +3,7 @@ module Main where
 import Control.Monad
 import Data.Aeson
 import Data.Time
+import Options.Applicative
 import Plan.Day
 import Plan.Task
 import Plan.TimeRange
@@ -10,6 +11,41 @@ import System.Directory
 import System.Environment
 import System.Exit
 import Text.Read
+
+data OptTask = OptTask
+  { optName :: String
+  , optImportance :: Int
+  , optDeadline :: Int
+  , optTime :: Double
+  } deriving (Show)
+
+nameOpt :: Parser String
+nameOpt =
+  strOption
+    (long "name" <> short 'n' <> help "Name of the task" <> metavar "NAME")
+
+taskOpts :: Parser OptTask
+taskOpts =
+  OptTask <$> nameOpt <*>
+  option
+    auto
+    (long "importance" <> short 'i' <> value 0 <> help "Task importance" <>
+     metavar "IMPORTANCE") <*>
+  option
+    auto
+    (long "deadline" <> short 'd' <> value 1 <> help "Days until deadline" <>
+     metavar "DEADLINE") <*>
+  option
+    auto
+    (long "time" <> short 't' <> value 1 <> help "Hours needed to complete task" <>
+     metavar "TIME")
+
+opts :: Parser (IO ())
+opts =
+  hsubparser $
+  command "add" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
+  command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
+  command "rm" (info (removeTask <$> nameOpt) (progDesc "Remove task"))
 
 input :: String -> IO String
 input s = do
@@ -28,11 +64,9 @@ checkRead s = do
 main :: IO ()
 main = do
   args <- getArgs
-  case args of
-    [] -> printPlan
-    ["add"] -> addTask
-    ["rm", n] -> removeTask n
-    _ -> error "Invalid!"
+  if null args
+    then printPlan
+    else join $ execParser (info (opts <**> helper) idm)
 
 printPlan :: IO ()
 printPlan = do
@@ -43,20 +77,16 @@ printPlan = do
      in unless (n `elem` ["Now", "Midnight"]) $
         putStrLn $ f s <> "-" <> f e <> ": " <> n
 
-addTask :: IO ()
-addTask = do
+addTask :: OptTask -> IO ()
+addTask (OptTask n i d t) = do
   time <- getCurrentTime
-  n <- input "Task name: "
-  i <- checkRead "Task importance: "
-  d <- checkRead "Days until deadline: "
-  t <- checkRead "Time needed (hours): " :: IO Double
   old <- getTasks
   let new =
         Task
           Nothing
           (picosecondsToDiffTime $ round $ t * 3600 * 10 ^ (12 :: Int))
           i
-          (addDays d $ utctDay time)
+          (addDays (toInteger d) $ utctDay time)
           n
   setTasks $ new : old
 
