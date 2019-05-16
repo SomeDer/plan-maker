@@ -29,12 +29,14 @@ planDay (UTCTime day time) ts' es =
                 diffDays (deadline n) day
               attemptInsert i =
                 let planStart = end $ fromJust $ scheduled $ elemAt i ts
+                    planEnd = start $ fromJust $ scheduled $ elemAt (i + 1) ts
+                    convert = diffTimeToPicoseconds . timeOfDayToTime
                     plannedTimeRange =
                       TimeRange planStart $
                       timeToTimeOfDay $
                       timeOfDayToTime planStart + picosecondsToDiffTime need
                  in if need <=
-                       diffTimeToPicoseconds (timeRangeSize plannedTimeRange)
+                       convert planEnd - convert planStart
                       then insert (n {scheduled = Just plannedTimeRange}) ts
                       else attemptInsert (i + 1)
            in attemptInsert 0
