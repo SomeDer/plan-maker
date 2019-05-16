@@ -103,7 +103,10 @@ getTasks = do
         Nothing -> do
           putStrLn "You edited the plan.json file and now it doesn't work!"
           exitFailure
-    else return []
+    else do
+      putStrLn "You don't have any tasks defined."
+      putStrLn "Run plan add --help to see how to add them."
+      exitFailure
 
 setTasks :: [Task] -> IO ()
 setTasks t = do
