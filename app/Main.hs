@@ -70,7 +70,7 @@ main = do
 
 printPlan :: IO ()
 printPlan = do
-  t <- getTasks
+  t <- getTasks'
   time <- getCurrentTime
   forM_ (planDay time t []) $ \(Task (Just (TimeRange s e)) _ _ _ n) ->
     let f = take 5 . show
@@ -103,10 +103,17 @@ getTasks = do
         Nothing -> do
           putStrLn "You edited the plan.json file and now it doesn't work!"
           exitFailure
-    else do
-      putStrLn "You don't have any tasks defined."
-      putStrLn "Run plan add --help to see how to add them."
-      exitFailure
+    else return []
+
+getTasks' :: IO [Task]
+getTasks' = do
+  t <- getTasks
+  if null t then do
+    putStrLn "You don't have any tasks defined."
+    putStrLn "Run plan add --help to see how to add them."
+    exitFailure
+  else return t
+
 
 setTasks :: [Task] -> IO ()
 setTasks t = do
@@ -115,5 +122,5 @@ setTasks t = do
 
 removeTask :: String -> IO ()
 removeTask n = do
-  t <- getTasks
+  t <- getTasks'
   setTasks $ filter ((/= n) . taskName) t
