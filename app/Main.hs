@@ -108,12 +108,12 @@ getTasks = do
 getTasks' :: IO [Task]
 getTasks' = do
   t <- getTasks
-  if null t then do
-    putStrLn "You don't have any tasks defined."
-    putStrLn "Run plan add --help to see how to add them."
-    exitFailure
-  else return t
-
+  if null t
+    then do
+      putStrLn "You don't have any tasks defined."
+      putStrLn "Run plan add --help to see how to add them."
+      exitFailure
+    else return t
 
 setTasks :: [Task] -> IO ()
 setTasks t = do
