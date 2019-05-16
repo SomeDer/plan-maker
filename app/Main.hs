@@ -80,7 +80,7 @@ printPlan = do
 addTask :: OptTask -> IO ()
 addTask (OptTask n i d t) = do
   time <- getCurrentTime
-  old <- getTasks' False
+  old <- getTasks
   let new =
         Task
           Nothing
@@ -91,10 +91,7 @@ addTask (OptTask n i d t) = do
   setTasks $ new : old
 
 getTasks :: IO [Task]
-getTasks = getTasks' True
-
-getTasks' :: Bool -> IO [Task]
-getTasks' err = do
+getTasks = do
   home <- getHomeDirectory
   let f = home <> "/.plan.json"
   e <- doesFileExist f
@@ -106,12 +103,10 @@ getTasks' err = do
         Nothing -> do
           putStrLn "You edited the plan.json file and now it doesn't work!"
           exitFailure
-    else if err
-           then do
-             putStrLn "You don't have any tasks defined."
-             putStrLn "Run plan add --help to see how to add them."
-             exitFailure
-           else return []
+    else do
+      putStrLn "You don't have any tasks defined."
+      putStrLn "Run plan add --help to see how to add them."
+      exitFailure
 
 setTasks :: [Task] -> IO ()
 setTasks t = do
