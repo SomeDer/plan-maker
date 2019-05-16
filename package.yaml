@@ -26,6 +26,8 @@ dependencies:
 - aeson
 - directory
 - optparse-applicative
+- rio
+- data-has
 
 library:
   source-dirs: src
