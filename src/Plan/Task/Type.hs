@@ -1,11 +1,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Plan.Task where
+module Plan.Task.Type where
 
 import Data.Aeson
 import Data.Time
-import GHC.Generics
 import Plan.TimeRange
+import RIO
 
 data Task = Task
   { scheduled :: Maybe TimeRange
@@ -16,11 +16,14 @@ data Task = Task
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Task
+
 instance FromJSON Task
 
 instance Ord Task where
   Task (Just (TimeRange s e)) _ _ _ _ <= Task (Just (TimeRange s' e')) _ _ _ _ =
-    if s == s' then e <= e' else s < s'
+    if s == s'
+      then e <= e'
+      else s < s'
   _ <= _ = True
 
 data Event = Event
@@ -30,3 +33,10 @@ data Event = Event
 
 eventToTask :: Day -> Event -> Task
 eventToTask today (Event n s) = Task (Just s) (timeRangeSize s) maxBound today n
+
+data OptTask = OptTask
+  { optName :: String
+  , optImportance :: Int
+  , optDeadline :: Int
+  , optTime :: Double
+  } deriving (Show)
