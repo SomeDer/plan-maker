@@ -59,26 +59,11 @@ extra-deps:
 - transformers-compat-0.6.4@sha256:d298cd9d1bb7b05160229e244436bae825b53660865e3d5fd695ea0fafec1e6f
 - ansi-terminal-0.9@sha256:24e357bccd882add0d9caee63136d6b7923aaa9e36ed515097230dca82b0065c
 - colour-2.3.5@sha256:b27db0a3ad40d70bdbd8510a104269f8707592e80757a1abc66a22ba25e5a42f
-# Override default flag values for local packages and extra-deps
-# flags: {}
-
-# Extra package databases containing global packages
-# extra-package-dbs: []
-
-# Control whether we use the GHC we find on the path
-# system-ghc: true
-#
-# Require a specific version of stack, using version ranges
-# require-stack-version: -any # Default
-# require-stack-version: ">=1.9"
-#
-# Override the architecture used by stack, especially useful on Windows
-# arch: i386
-# arch: x86_64
-#
-# Extra directories used by stack for building
-# extra-include-dirs: [/path/to/dir]
-# extra-lib-dirs: [/path/to/dir]
-#
-# Allow a newer minor version of GHC than the snapshot specifies
-# compiler-check: newer-minor
+- rio-0.1.9.2@sha256:d46a202ae0930b496fd17fd9041d051d45645ab28a2f8d30cf483f50ccb21eb3
+- exceptions-0.10.2@sha256:de2be08eb73e1fb4115135c62f5d5f7ed9bdb9affff318687ac6cc0438b497f0
+- microlens-0.4.10@sha256:9acd6f6e604f1db35db6a9b2195f0c6e72a28f5260dfba0681b21a2d2274bcc1
+- typed-process-0.2.4.0@sha256:fb1574481a394bec4f49016fc42f2404cea4acf5b129329459dae5e416da560e
+- unliftio-0.2.10@sha256:ed8bc7f9c38361aebd5481efbbbe6e3ee9468d07fffd1a7f0670f0fbbe28bb4f
+- unliftio-core-0.1.2.0@sha256:7f9b48adef8e36da0202e6e70a733a5e210263ed4177c93e47a4b3f89694194b
+- async-2.2.1@sha256:61789382f449a02f827e70a029ba8f24a223b9c6b3792bb094fbd41ee360e851
+- data-has-0.3.0.0@sha256:c760f7110f44e7e85e6398cab769b4ceb01d54bb2f18e783b3a2edc935248f16

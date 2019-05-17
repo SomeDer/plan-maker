@@ -26,12 +26,18 @@ dependencies:
 - aeson
 - directory
 - optparse-applicative
+- rio
+- data-has
 
 library:
   source-dirs: src
 
 ghc-options:
 - -Wall
+- -XNoImplicitPrelude
+- -XFlexibleContexts
+- -XFlexibleInstances
+- -XMultiParamTypeClasses
 
 executables:
   plan:

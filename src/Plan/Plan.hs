@@ -1,15 +1,19 @@
-module Plan.Day where
+module Plan.Plan where
 
+import Data.Has
 import Data.List (sortOn)
 import Data.Maybe
-import Data.Set
+import Data.Set (elemAt, fromList, insert)
 import Data.Time
-import Plan.Task
+import Plan.Env
+import Plan.Task.Type
 import Plan.TimeRange
+import Prelude (putStrLn)
+import RIO
 
 planDay :: UTCTime -> [Task] -> [Event] -> Set Task
 planDay (UTCTime day time) ts' es =
-  Prelude.foldr
+  RIO.foldr
     f
     (fromList
        [ Task (Just $ TimeRange timeNow timeNow) 0 0 day "Now"
@@ -35,8 +39,16 @@ planDay (UTCTime day time) ts' es =
                       TimeRange planStart $
                       timeToTimeOfDay $
                       timeOfDayToTime planStart + picosecondsToDiffTime need
-                 in if need <=
-                       convert planEnd - convert planStart
+                 in if need <= convert planEnd - convert planStart
                       then insert (n {scheduled = Just plannedTimeRange}) ts
                       else attemptInsert (i + 1)
            in attemptInsert 0
+
+printPlan ::
+     (Has CurrentTime env, Has [Task] env, Has [Event] env) => RIO env ()
+printPlan = do
+  env <- ask
+  forM_ (planDay (getTime $ getter env) (getter env) (getter env)) $ \(Task (Just (TimeRange s e)) _ _ _ n) ->
+    let f = take 5 . show
+     in unless (n `elem` ["Now", "Midnight"]) $
+        liftIO $ putStrLn $ f s <> "-" <> f e <> ": " <> n
