@@ -19,6 +19,7 @@ addTask ::
   -> RIO env ()
 addTask (OptTask n i d t) = do
   env <- ask
+  liftIO $ putStrLn $ "Adding task '" <> n <> "'"
   let new =
         Task
           Nothing
@@ -38,9 +39,10 @@ addEvent (OptEvent n d s e) = do
       s' = f s
       e' = f e
   case liftA2 TimeRange (readMaybe s') (readMaybe e') of
-    Just r ->
+    Just r -> do
+      liftIO $ putStrLn $ "Adding event '" <> n <> "'"
       let new = Event n (addDays d $ utctDay $ getTime $ getter env) r
-       in setConfig $ Config (getter env) $ new : getter env
+      setConfig $ Config (getter env) $ new : getter env
     Nothing ->
       liftIO $
       ioError $
@@ -56,8 +58,10 @@ removeItem n = do
       t = noName taskName
       e = noName eventName
   liftIO $
-    when (t == getter env && e == getter env) $
-    ioError $ mkIOError NoSuchThing ("task/event '" <> n <> "'") Nothing Nothing
+    if t == getter env && e == getter env
+      then ioError $
+           mkIOError NoSuchThing ("task/event '" <> n <> "'") Nothing Nothing
+      else putStrLn $ "Removed '" <> n <> "'"
   setConfig $ Config t e
 
 getConfig :: (Has ConfigFile env) => RIO env Config
