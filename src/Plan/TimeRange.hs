@@ -2,8 +2,8 @@
 
 module Plan.TimeRange where
 
-import Data.Aeson
 import Data.Time
+import Data.Yaml
 import RIO
 
 data TimeRange = TimeRange

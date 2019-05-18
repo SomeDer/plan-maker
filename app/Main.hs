@@ -32,7 +32,7 @@ main :: IO ()
 main = do
   time <- getCurrentTime
   home <- getHomeDirectory
-  let save = home <> "/.plan.json"
+  let save = home <> "/.plan.yaml"
       sit = Situation (ConfigFile save) (CurrentTime time)
   ts <- runRIO sit getTasks
   let env = Env ts [] sit

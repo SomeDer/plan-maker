@@ -2,8 +2,8 @@
 
 module Plan.Task.Type where
 
-import Data.Aeson
 import Data.Time
+import Data.Yaml
 import Plan.TimeRange
 import RIO
 
@@ -25,14 +25,6 @@ instance Ord Task where
       then e <= e'
       else s < s'
   _ <= _ = True
-
-data Event = Event
-  { eventName :: String
-  , eventScheduled :: TimeRange
-  }
-
-eventToTask :: Day -> Event -> Task
-eventToTask today (Event n s) = Task (Just s) (timeRangeSize s) maxBound today n
 
 data OptTask = OptTask
   { optName :: String
