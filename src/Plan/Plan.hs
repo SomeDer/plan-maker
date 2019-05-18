@@ -14,7 +14,7 @@ import RIO
 
 planDay :: UTCTime -> [Task] -> [Event] -> Set Task
 planDay (UTCTime day time) ts' es =
-  RIO.foldr
+  foldr
     f
     (fromList
        [ Task (Just $ TimeRange timeNow timeNow) 0 0 day "Now"
@@ -26,7 +26,16 @@ planDay (UTCTime day time) ts' es =
     timeNow = timeToTimeOfDay time
     xs =
       sortOn importance $
-      ts' <> fmap (eventToTask day) (filter ((== day) . eventDate) es)
+      ts' <>
+      fmap
+        ((eventToTask day .) $ \e ->
+           if start (eventScheduled e) < timeToTimeOfDay time
+             then e
+                    { eventScheduled =
+                        (eventScheduled e) {start = timeToTimeOfDay time}
+                    }
+             else e)
+        (filter ((== day) . eventDate) es)
     f n ts =
       case scheduled n of
         Just _ -> insert n ts
