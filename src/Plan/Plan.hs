@@ -6,6 +6,7 @@ import Data.Maybe
 import Data.Set (elemAt, fromList, insert)
 import Data.Time
 import Plan.Env
+import Plan.Event
 import Plan.Task.Type
 import Plan.TimeRange
 import Prelude (putStrLn)
