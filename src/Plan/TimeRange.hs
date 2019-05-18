@@ -4,7 +4,7 @@ module Plan.TimeRange where
 
 import Data.Aeson
 import Data.Time
-import GHC.Generics
+import RIO
 
 data TimeRange = TimeRange
   { start :: TimeOfDay
@@ -12,6 +12,7 @@ data TimeRange = TimeRange
   } deriving (Eq, Show, Generic)
 
 instance ToJSON TimeRange
+
 instance FromJSON TimeRange
 
 timeRangeSize :: TimeRange -> DiffTime
