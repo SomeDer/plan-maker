@@ -17,7 +17,11 @@ data Env = Env
 data Config = Config
   { tasks :: [Task]
   , events :: [Event]
-  }
+  } deriving (Eq, Show, Generic)
+
+instance ToJSON Config
+
+instance FromJSON Config
 
 data Situation = Situation
   { configFile :: ConfigFile
