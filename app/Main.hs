@@ -38,16 +38,16 @@ main = do
   let env = Env (Config ts []) sit
       opts =
         hsubparser $
-        command "add" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
+        command "task" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
         command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
         command "rm" (info (removeTask <$> nameOpt) (progDesc "Remove task"))
   args <- getArgs
   case args of
-    "add":_ -> return ()
+    "task":_ -> return ()
     _ ->
       when (null ts) $ do
         putStrLn "You don't have any tasks defined."
-        putStrLn "Run plan add --help to see how to add them."
+        putStrLn "Run plan task --help to see how to add them."
         exitFailure
   if null args
     then runRIO env printPlan
