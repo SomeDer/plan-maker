@@ -56,6 +56,7 @@ main = do
   args <- getArgs
   case args of
     "task":_ -> return ()
+    "event":_ -> return ()
     _ ->
       when (null ts && null es) $ do
         putStrLn "You don't have any tasks/events defined."
