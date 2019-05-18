@@ -6,6 +6,7 @@ import Data.Aeson
 import Data.Has
 import Data.Time
 import Plan.Task.Type
+import Plan.Event
 import RIO
 
 data Env = Env
