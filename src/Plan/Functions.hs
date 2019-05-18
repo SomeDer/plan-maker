@@ -1,4 +1,4 @@
-module Plan.Task.Functions where
+module Plan.Functions where
 
 import Data.Has
 import Data.Time
@@ -6,7 +6,7 @@ import Data.Yaml
 import GHC.IO.Exception
 import Plan.Env
 import Plan.Event
-import Plan.Task.Type
+import Plan.Task
 import Plan.TimeRange
 import Prelude
 import RIO

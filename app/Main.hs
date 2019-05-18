@@ -6,8 +6,8 @@ import Options.Applicative
 import Plan.Env
 import Plan.Event
 import Plan.Plan
-import Plan.Task.Functions
-import Plan.Task.Type
+import Plan.Functions
+import Plan.Task
 import Prelude (putStrLn)
 import RIO
 import System.Directory

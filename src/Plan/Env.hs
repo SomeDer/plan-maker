@@ -6,7 +6,7 @@ import Data.Has
 import Data.Time
 import Data.Yaml
 import Plan.Event
-import Plan.Task.Type
+import Plan.Task
 import RIO
 
 data Env = Env

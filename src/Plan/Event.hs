@@ -2,7 +2,7 @@ module Plan.Event where
 
 import Data.Time
 import Data.Yaml
-import Plan.Task.Type
+import Plan.Task
 import Plan.TimeRange
 import RIO
 
