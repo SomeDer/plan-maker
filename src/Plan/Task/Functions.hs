@@ -3,6 +3,7 @@ module Plan.Task.Functions where
 import Data.Has
 import Data.Time
 import Data.Yaml
+import GHC.IO.Exception
 import Plan.Env
 import Plan.Event
 import Plan.Task.Type
@@ -10,6 +11,7 @@ import Plan.TimeRange
 import Prelude
 import RIO
 import System.Directory
+import System.IO.Error
 
 addTask ::
      (Has [Task] env, Has [Event] env, Has ConfigFile env, Has CurrentTime env)
@@ -51,7 +53,12 @@ removeItem ::
 removeItem n = do
   env <- ask
   let noName f = filter ((/= n) . f) $ getter env
-  setConfig $ Config (noName taskName) (noName eventName)
+      t = noName taskName
+      e = noName eventName
+  liftIO $
+    when (t == getter env && e == getter env) $
+    ioError $ mkIOError NoSuchThing ("task/event '" <> n <> "'") Nothing Nothing
+  setConfig $ Config t e
 
 getConfig :: (Has ConfigFile env) => RIO env Config
 getConfig = do
