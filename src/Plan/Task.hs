@@ -1,6 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
-
-module Plan.Task.Type where
+module Plan.Task where
 
 import Data.Time
 import Data.Yaml

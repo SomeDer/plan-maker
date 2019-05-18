@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 module Plan.TimeRange where
 
 import Data.Time
