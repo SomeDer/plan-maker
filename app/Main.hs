@@ -34,7 +34,7 @@ main = do
   home <- getHomeDirectory
   let save = home <> "/.plan.yaml"
       sit = Situation (ConfigFile save) (CurrentTime time)
-  ts <- runRIO sit getTasks
+  Config ts _ <- runRIO sit getConfig
   let env = Env (Config ts []) sit
       opts =
         hsubparser $

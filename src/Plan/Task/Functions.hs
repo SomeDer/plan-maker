@@ -22,13 +22,14 @@ addTask (OptTask n i d t) = do
           i
           (addDays (toInteger d) $ utctDay (getTime $ getter env))
           n
-  setTasks $ new : getter env
+  setConfig $ Config (new : getter env) []
 
 removeTask :: (Has ConfigFile env, Has [Task] env) => String -> RIO env ()
-removeTask n = setTasks . filter ((/= n) . taskName) . getter =<< ask
+removeTask n =
+  setConfig . flip Config [] . filter ((/= n) . taskName) . getter =<< ask
 
-getTasks :: (Has ConfigFile env) => RIO env [Task]
-getTasks = do
+getConfig :: (Has ConfigFile env) => RIO env Config
+getConfig = do
   env <- ask
   let f = getConfigFile $ getter env
   e <- liftIO $ doesFileExist f
@@ -38,9 +39,9 @@ getTasks = do
            case d of
              Left err -> putStrLn (prettyPrintParseException err) >> exitFailure
              Right x -> return x
-    else return []
+    else return $ Config [] []
 
-setTasks :: (Has ConfigFile env) => [Task] -> RIO env ()
-setTasks t = do
+setConfig :: (Has ConfigFile env) => Config -> RIO env ()
+setConfig c = do
   env <- ask
-  liftIO $ encodeFile (getConfigFile $ getter env) t
+  liftIO $ encodeFile (getConfigFile $ getter env) c
