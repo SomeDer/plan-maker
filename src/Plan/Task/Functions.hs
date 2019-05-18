@@ -44,9 +44,14 @@ addEvent (OptEvent n d s e) = do
       ioError $
       userError "Input time in the format hh:mm. Examples: 07:58, 18:08."
 
-removeTask :: (Has ConfigFile env, Has [Task] env) => String -> RIO env ()
-removeTask n =
-  setConfig . flip Config [] . filter ((/= n) . taskName) . getter =<< ask
+removeItem ::
+     (Has ConfigFile env, Has [Task] env, Has [Event] env)
+  => String
+  -> RIO env ()
+removeItem n = do
+  env <- ask
+  let noName f = filter ((/= n) . f) $ getter env
+  setConfig $ Config (noName taskName) (noName eventName)
 
 getConfig :: (Has ConfigFile env) => RIO env Config
 getConfig = do
