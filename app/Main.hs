@@ -4,6 +4,7 @@ import Control.Monad
 import Data.Time
 import Options.Applicative
 import Plan.Env
+import Plan.Event
 import Plan.Plan
 import Plan.Task.Functions
 import Plan.Task.Type
@@ -13,7 +14,7 @@ import System.Directory
 import System.Environment
 
 nameOpt :: Parser String
-nameOpt = strOption (long "name" <> short 'n' <> help "Name of the task")
+nameOpt = strOption (long "name" <> short 'n')
 
 taskOpts :: Parser OptTask
 taskOpts =
@@ -28,26 +29,44 @@ taskOpts =
     auto
     (long "time" <> short 't' <> value 1 <> help "Hours needed to complete task")
 
+eventOpts :: Parser OptEvent
+eventOpts =
+  OptEvent <$> nameOpt <*>
+  option
+    auto
+    (long "days" <> short 'd' <> value 0 <>
+     help "Days until event. 0 means it's happening today.") <*>
+  strOption
+    (long "start" <> short 's' <>
+     help "Time when the event starts. Format: hh:mm") <*>
+  strOption
+    (long "end" <> short 'e' <> help "Time when the event ends. Format: hh:mm")
+
 main :: IO ()
 main = do
   time <- getCurrentTime
   home <- getHomeDirectory
   let save = home <> "/.plan.yaml"
       sit = Situation (ConfigFile save) (CurrentTime time)
-  ts <- runRIO sit getTasks
-  let env = Env ts [] sit
+  c@(Config ts es) <- runRIO sit getConfig
+  let env = Env c sit
       opts =
         hsubparser $
-        command "add" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
+        command "task" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
+        command
+          "event"
+          (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
         command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
-        command "rm" (info (removeTask <$> nameOpt) (progDesc "Remove task"))
+        command "rm" (info (removeItem <$> nameOpt) (progDesc "Remove task"))
   args <- getArgs
   case args of
-    "add":_ -> return ()
+    "task":_ -> return ()
+    "event":_ -> return ()
     _ ->
-      when (null ts) $ do
-        putStrLn "You don't have any tasks defined."
-        putStrLn "Run plan add --help to see how to add them."
+      when (null ts && null es) $ do
+        putStrLn "You don't have any tasks/events defined."
+        putStrLn
+          "Run plan task --help or plan event --help to see how to add them."
         exitFailure
   if null args
     then runRIO env printPlan

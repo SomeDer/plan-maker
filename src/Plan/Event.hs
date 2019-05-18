@@ -1,6 +1,7 @@
 module Plan.Event where
 
 import Data.Time
+import Data.Yaml
 import Plan.Task.Type
 import Plan.TimeRange
 import RIO
@@ -9,7 +10,11 @@ data Event = Event
   { eventName :: String
   , eventDate :: Day
   , eventScheduled :: TimeRange
-  }
+  } deriving (Eq, Show, Generic)
+
+instance ToJSON Event
+
+instance FromJSON Event
 
 eventToTask :: Day -> Event -> Task
 eventToTask today (Event n d s) =
@@ -21,3 +26,10 @@ eventToTask today (Event n d s) =
     maxBound
     (addDays 1 today)
     n
+
+data OptEvent = OptEvent
+  { optEventName :: String
+  , optDaysTil :: Integer
+  , optStart :: String
+  , optEnd :: String
+  } deriving (Show)
