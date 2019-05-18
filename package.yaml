@@ -38,6 +38,8 @@ ghc-options:
 - -XFlexibleContexts
 - -XFlexibleInstances
 - -XMultiParamTypeClasses
+- -XDeriveGeneric
+- -XGeneralizedNewtypeDeriving
 
 executables:
   plan:
