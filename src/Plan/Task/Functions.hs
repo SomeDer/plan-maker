@@ -3,14 +3,18 @@ module Plan.Task.Functions where
 import Data.Has
 import Data.Time
 import Data.Yaml
+import GHC.IO.Exception
 import Plan.Env
+import Plan.Event
 import Plan.Task.Type
+import Plan.TimeRange
 import Prelude
 import RIO
 import System.Directory
+import System.IO.Error
 
 addTask ::
-     (Has [Task] env, Has ConfigFile env, Has CurrentTime env)
+     (Has [Task] env, Has [Event] env, Has ConfigFile env, Has CurrentTime env)
   => OptTask
   -> RIO env ()
 addTask (OptTask n i d t) = do
@@ -22,13 +26,42 @@ addTask (OptTask n i d t) = do
           i
           (addDays (toInteger d) $ utctDay (getTime $ getter env))
           n
-  setTasks $ new : getter env
+  setConfig $ Config (new : getter env) $ getter env
 
-removeTask :: (Has ConfigFile env, Has [Task] env) => String -> RIO env ()
-removeTask n = setTasks . filter ((/= n) . taskName) . getter =<< ask
+addEvent ::
+     (Has [Task] env, Has [Event] env, Has ConfigFile env, Has CurrentTime env)
+  => OptEvent
+  -> RIO env ()
+addEvent (OptEvent n d s e) = do
+  env <- ask
+  let f = (<> ":00")
+      s' = f s
+      e' = f e
+  case liftA2 TimeRange (readMaybe s') (readMaybe e') of
+    Just r ->
+      let new = Event n (addDays d $ utctDay $ getTime $ getter env) r
+       in setConfig $ Config (getter env) $ new : getter env
+    Nothing ->
+      liftIO $
+      ioError $
+      userError "Input time in the format hh:mm. Examples: 07:58, 18:08."
 
-getTasks :: (Has ConfigFile env) => RIO env [Task]
-getTasks = do
+removeItem ::
+     (Has ConfigFile env, Has [Task] env, Has [Event] env)
+  => String
+  -> RIO env ()
+removeItem n = do
+  env <- ask
+  let noName f = filter ((/= n) . f) $ getter env
+      t = noName taskName
+      e = noName eventName
+  liftIO $
+    when (t == getter env && e == getter env) $
+    ioError $ mkIOError NoSuchThing ("task/event '" <> n <> "'") Nothing Nothing
+  setConfig $ Config t e
+
+getConfig :: (Has ConfigFile env) => RIO env Config
+getConfig = do
   env <- ask
   let f = getConfigFile $ getter env
   e <- liftIO $ doesFileExist f
@@ -38,9 +71,9 @@ getTasks = do
            case d of
              Left err -> putStrLn (prettyPrintParseException err) >> exitFailure
              Right x -> return x
-    else return []
+    else return $ Config [] []
 
-setTasks :: (Has ConfigFile env) => [Task] -> RIO env ()
-setTasks t = do
+setConfig :: (Has ConfigFile env) => Config -> RIO env ()
+setConfig c = do
   env <- ask
-  liftIO $ encodeFile (getConfigFile $ getter env) t
+  liftIO $ encodeFile (getConfigFile $ getter env) c
