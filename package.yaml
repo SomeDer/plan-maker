@@ -23,11 +23,11 @@ dependencies:
 - base >= 4.7 && < 5
 - time
 - containers
-- aeson
 - directory
 - optparse-applicative
 - rio
 - data-has
+- yaml
 
 library:
   source-dirs: src

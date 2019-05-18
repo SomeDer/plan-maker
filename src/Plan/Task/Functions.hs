@@ -1,11 +1,11 @@
 module Plan.Task.Functions where
 
-import Data.Aeson
 import Data.Has
 import Data.Time
+import Data.Yaml
 import Plan.Env
 import Plan.Task.Type
-import Prelude (putStrLn, readFile, writeFile)
+import Prelude
 import RIO
 import System.Directory
 
@@ -33,17 +33,14 @@ getTasks = do
   let f = getConfigFile $ getter env
   e <- liftIO $ doesFileExist f
   if e
-    then do
-      t <- liftIO $ readFile f
-      case decode =<< readMaybe t of
-        Just y -> return y
-        Nothing ->
-          liftIO $ do
-            putStrLn "You edited the plan.json file and now it doesn't work!"
-            exitFailure
+    then liftIO $ do
+           d <- decodeFileEither f
+           case d of
+             Left err -> putStrLn (prettyPrintParseException err) >> exitFailure
+             Right x -> return x
     else return []
 
 setTasks :: (Has ConfigFile env) => [Task] -> RIO env ()
 setTasks t = do
   env <- ask
-  liftIO $ writeFile (getConfigFile $ getter env) $ show $ encode t
+  liftIO $ encodeFile (getConfigFile $ getter env) t

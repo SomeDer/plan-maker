@@ -2,9 +2,10 @@
 
 module Plan.Env where
 
-import Data.Aeson
 import Data.Has
 import Data.Time
+import Data.Yaml
+import Plan.Event
 import Plan.Task.Type
 import RIO
 
