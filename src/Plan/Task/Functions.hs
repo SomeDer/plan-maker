@@ -4,13 +4,15 @@ import Data.Has
 import Data.Time
 import Data.Yaml
 import Plan.Env
+import Plan.Event
 import Plan.Task.Type
+import Plan.TimeRange
 import Prelude
 import RIO
 import System.Directory
 
 addTask ::
-     (Has [Task] env, Has ConfigFile env, Has CurrentTime env)
+     (Has [Task] env, Has [Event] env, Has ConfigFile env, Has CurrentTime env)
   => OptTask
   -> RIO env ()
 addTask (OptTask n i d t) = do
@@ -22,7 +24,25 @@ addTask (OptTask n i d t) = do
           i
           (addDays (toInteger d) $ utctDay (getTime $ getter env))
           n
-  setConfig $ Config (new : getter env) []
+  setConfig $ Config (new : getter env) $ getter env
+
+addEvent ::
+     (Has [Task] env, Has [Event] env, Has ConfigFile env, Has CurrentTime env)
+  => OptEvent
+  -> RIO env ()
+addEvent (OptEvent n d s e) = do
+  env <- ask
+  let f = (<> ":00")
+      s' = f s
+      e' = f e
+  case liftA2 TimeRange (readMaybe s') (readMaybe e') of
+    Just r ->
+      let new = Event n (addDays d $ utctDay $ getTime $ getter env) r
+       in setConfig $ Config (getter env) $ new : getter env
+    Nothing ->
+      liftIO $
+      ioError $
+      userError "Input time in the format hh:mm. Examples: 07:58, 18:08."
 
 removeTask :: (Has ConfigFile env, Has [Task] env) => String -> RIO env ()
 removeTask n =

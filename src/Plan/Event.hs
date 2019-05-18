@@ -26,3 +26,10 @@ eventToTask today (Event n d s) =
     maxBound
     (addDays 1 today)
     n
+
+data OptEvent = OptEvent
+  { optEventName :: String
+  , optDaysTil :: Integer
+  , optStart :: String
+  , optEnd :: String
+  } deriving (Show)
