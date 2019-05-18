@@ -1,8 +1,8 @@
 module Plan.Task.Functions where
 
-import Data.Aeson
 import Data.Has
 import Data.Time
+import Data.Yaml
 import Plan.Env
 import Plan.Task.Type
 import Prelude (putStrLn, readFile, writeFile)
@@ -39,7 +39,7 @@ getTasks = do
         Just y -> return y
         Nothing ->
           liftIO $ do
-            putStrLn "You edited the plan.json file and now it doesn't work!"
+            putStrLn "You edited the plan.yaml file and now it doesn't work!"
             exitFailure
     else return []
 

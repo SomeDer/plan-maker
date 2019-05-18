@@ -2,8 +2,8 @@
 
 module Plan.Task.Type where
 
-import Data.Aeson
 import Data.Time
+import Data.Yaml
 import Plan.TimeRange
 import RIO
 
