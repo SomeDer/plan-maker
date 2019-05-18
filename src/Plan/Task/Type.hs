@@ -26,14 +26,6 @@ instance Ord Task where
       else s < s'
   _ <= _ = True
 
-data Event = Event
-  { eventName :: String
-  , eventScheduled :: TimeRange
-  }
-
-eventToTask :: Day -> Event -> Task
-eventToTask today (Event n s) = Task (Just s) (timeRangeSize s) maxBound today n
-
 data OptTask = OptTask
   { optName :: String
   , optImportance :: Int
