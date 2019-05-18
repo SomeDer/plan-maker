@@ -52,7 +52,7 @@ main = do
         command "task" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
         command "event" (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
         command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
-        command "rm" (info (removeTask <$> nameOpt) (progDesc "Remove task"))
+        command "rm" (info (removeItem <$> nameOpt) (progDesc "Remove task"))
   args <- getArgs
   case args of
     "task":_ -> return ()
