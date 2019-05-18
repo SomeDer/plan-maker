@@ -36,8 +36,11 @@ eventOpts =
     auto
     (long "days" <> short 'd' <> value 0 <>
      help "Days until event. 0 means it's happening today.") <*>
-  strOption (long "start" <> short 's' <> help "Time when the event starts. Format: hh:mm") <*>
-  strOption (long "end" <> short 'e' <> help "Time when the event ends. Format: hh:mm")
+  strOption
+    (long "start" <> short 's' <>
+     help "Time when the event starts. Format: hh:mm") <*>
+  strOption
+    (long "end" <> short 'e' <> help "Time when the event ends. Format: hh:mm")
 
 main :: IO ()
 main = do
@@ -50,7 +53,9 @@ main = do
       opts =
         hsubparser $
         command "task" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
-        command "event" (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
+        command
+          "event"
+          (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
         command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
         command "rm" (info (removeItem <$> nameOpt) (progDesc "Remove task"))
   args <- getArgs
@@ -60,7 +65,8 @@ main = do
     _ ->
       when (null ts && null es) $ do
         putStrLn "You don't have any tasks/events defined."
-        putStrLn "Run plan task --help or plan event --help to see how to add them."
+        putStrLn
+          "Run plan task --help or plan event --help to see how to add them."
         exitFailure
   if null args
     then runRIO env printPlan
