@@ -35,7 +35,7 @@ main = do
   let save = home <> "/.plan.yaml"
       sit = Situation (ConfigFile save) (CurrentTime time)
   ts <- runRIO sit getTasks
-  let env = Env ts [] sit
+  let env = Env (Config ts []) sit
       opts =
         hsubparser $
         command "add" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
