@@ -28,6 +28,7 @@ dependencies:
 - rio
 - data-has
 - yaml
+- microlens-th
 
 library:
   source-dirs: src
