@@ -24,7 +24,9 @@ planDay (UTCTime day time) ts' es =
   where
     midnight' = TimeOfDay 23 59 59
     timeNow = timeToTimeOfDay time
-    xs = sortOn importance $ ts' <> fmap (eventToTask day) es
+    xs =
+      sortOn importance $
+      ts' <> fmap (eventToTask day) (filter ((== day) . eventDate) es)
     f n ts =
       case scheduled n of
         Just _ -> insert n ts
