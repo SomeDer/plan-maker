@@ -1,6 +1,5 @@
 module Plan.Functions where
 
-import Data.Has
 import Data.Time
 import Data.Yaml
 import GHC.IO.Exception
@@ -13,10 +12,9 @@ import RIO
 import System.Directory
 import System.IO.Error
 
-addTask ::
-     (Has [Task] env, Has [Event] env, Has ConfigFile env, Has CurrentTime env)
-  => OptTask
-  -> RIO env ()
+addTask :: (MonadReader s m, MonadIO m, HasConfigLocation s String,
+              HasTasks s [Task], HasEvents s [Event], HasTime s UTCTime) =>
+             OptTask -> m ()
 addTask (OptTask n i d t) = do
   env <- ask
   liftIO $ putStrLn $ "Adding task '" <> n <> "'"
@@ -25,14 +23,14 @@ addTask (OptTask n i d t) = do
           Nothing
           (picosecondsToDiffTime $ round $ t * 3600 * 10 ^ (12 :: Int))
           i
-          (addDays (toInteger d) $ utctDay (getTime $ getter env))
+          (addDays (toInteger d) $ utctDay (env^.time))
           n
-  setConfig $ Config (new : getter env) $ getter env
+  setConfig $ Config (new : env^.tasks) $ env^.events
 
-addEvent ::
-     (Has [Task] env, Has [Event] env, Has ConfigFile env, Has CurrentTime env)
-  => OptEvent
-  -> RIO env ()
+addEvent :: (MonadReader s m, MonadIO m,
+               HasConfigLocation s String, HasTasks s [Task], HasEvents s [Event],
+               HasTime s UTCTime) =>
+              OptEvent -> m ()
 addEvent (OptEvent n d s e) = do
   env <- ask
   let f = (<> ":00")
@@ -41,33 +39,33 @@ addEvent (OptEvent n d s e) = do
   case liftA2 TimeRange (readMaybe s') (readMaybe e') of
     Just r -> do
       liftIO $ putStrLn $ "Adding event '" <> n <> "'"
-      let new = Event n (addDays d $ utctDay $ getTime $ getter env) r
-      setConfig $ Config (getter env) $ new : getter env
+      let new = Event n (addDays d $ utctDay $ env^.time) r
+      setConfig $ Config (env^.tasks) $ new : env^.events
     Nothing ->
       liftIO $
       ioError $
       userError "Input time in the format hh:mm. Examples: 07:58, 18:08."
 
-removeItem ::
-     (Has ConfigFile env, Has [Task] env, Has [Event] env)
-  => String
-  -> RIO env ()
+removeItem :: (MonadReader s m, MonadIO m,
+                 HasConfigLocation s String, HasTasks s [Task],
+                 HasEvents s [Event]) =>
+                String -> m ()
 removeItem n = do
   env <- ask
-  let noName f = filter ((/= n) . f) $ getter env
-      t = noName taskName
-      e = noName eventName
+  let noName f = filter ((/= n) . view name) $ env^.f
+      t = noName tasks
+      e = noName events
   liftIO $
-    if t == getter env && e == getter env
+    if t == env^.tasks && e == env^.events
       then ioError $
            mkIOError NoSuchThing ("task/event '" <> n <> "'") Nothing Nothing
       else putStrLn $ "Removed '" <> n <> "'"
   setConfig $ Config t e
 
-getConfig :: (Has ConfigFile env) => RIO env Config
+getConfig :: (HasConfigLocation env FilePath) => RIO env Config
 getConfig = do
   env <- ask
-  let f = getConfigFile $ getter env
+  let f = env^.configLocation
   e <- liftIO $ doesFileExist f
   if e
     then liftIO $ do
@@ -77,7 +75,9 @@ getConfig = do
              Right x -> return x
     else return $ Config [] []
 
-setConfig :: (Has ConfigFile env) => Config -> RIO env ()
+setConfig :: (MonadReader s m, MonadIO m, ToJSON a,
+                HasConfigLocation s String) =>
+               a -> m ()
 setConfig c = do
   env <- ask
-  liftIO $ encodeFile (getConfigFile $ getter env) c
+  liftIO $ encodeFile (env^.configLocation) c

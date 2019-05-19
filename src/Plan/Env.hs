@@ -1,72 +1,41 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TemplateHaskell, FunctionalDependencies #-}
 
 module Plan.Env where
 
-import Data.Has
 import Data.Time
 import Data.Yaml
+import Lens.Micro.TH
 import Plan.Event
 import Plan.Task
 import RIO
 
 data Env = Env
-  { config :: Config
-  , situation :: Situation
+  { envConfig :: Config
+  , envSituation :: Situation
   }
 
 data Config = Config
-  { tasks :: [Task]
-  , events :: [Event]
+  { configTasks :: [Task]
+  , configEvents :: [Event]
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Config
-
 instance FromJSON Config
 
 data Situation = Situation
-  { configFile :: ConfigFile
-  , currentTime :: CurrentTime
+  { situationConfigLocation :: FilePath
+  , situationTime :: UTCTime
   }
 
-newtype ConfigFile = ConfigFile
-  { getConfigFile :: FilePath
-  } deriving (Eq, Show, ToJSON, FromJSON)
+makeFields ''Env
+makeFields ''Config
+makeFields ''Situation
 
-newtype CurrentTime = CurrentTime
-  { getTime :: UTCTime
-  } deriving (Eq, Show, ToJSON, FromJSON)
-
-instance Has Situation Env where
-  hasLens = lens situation (\x y -> x {situation = y})
-
-instance Has Config Env where
-  hasLens = lens config (\x y -> x {config = y})
-
-instance Has [Task] Config where
-  hasLens = lens tasks (\x y -> x {tasks = y})
-
-instance Has [Event] Config where
-  hasLens = lens events (\x y -> x {events = y})
-
-instance Has ConfigFile Situation where
-  hasLens = lens configFile (\x y -> x {configFile = y})
-
-instance Has CurrentTime Situation where
-  hasLens = lens currentTime (\x y -> x {currentTime = y})
-
-instance Has [Task] Env where
-  hasLens = lens (tasks . config) $ \x y -> x {config = (config x) {tasks = y}}
-
-instance Has [Event] Env where
-  hasLens =
-    lens (events . config) $ \x y -> x {config = (config x) {events = y}}
-
-instance Has ConfigFile Env where
-  hasLens =
-    lens (configFile . situation) $ \x y ->
-      x {situation = (situation x) {configFile = y}}
-
-instance Has CurrentTime Env where
-  hasLens =
-    lens (currentTime . situation) $ \x y ->
-      x {situation = (situation x) {currentTime = y}}
+instance HasConfigLocation Env FilePath where
+  configLocation = situation.configLocation
+instance HasTime Env UTCTime where
+  time = situation.time
+instance HasEvents Env [Event] where
+  events = config.events
+instance HasTasks Env [Task] where
+  tasks = config.tasks

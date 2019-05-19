@@ -1,7 +1,10 @@
+{-# LANGUAGE TemplateHaskell, FunctionalDependencies #-}
+
 module Plan.Event where
 
 import Data.Time
 import Data.Yaml
+import Lens.Micro.TH
 import Plan.Task
 import Plan.TimeRange
 import RIO
@@ -29,7 +32,11 @@ eventToTask today (Event n d s) =
 
 data OptEvent = OptEvent
   { optEventName :: String
-  , optDaysTil :: Integer
-  , optStart :: String
-  , optEnd :: String
+  , optEventDaysTil :: Integer
+  , optEventStart :: String
+  , optEventEnd :: String
   } deriving (Show)
+
+makeFields ''Event
+
+makeFields ''OptEvent
