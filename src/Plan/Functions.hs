@@ -31,7 +31,8 @@ addTask (OptTask n i d t) = do
           (picosecondsToDiffTime $ round $ t * 3600 * 10 ^ (12 :: Int))
           i
           (addDays (toInteger d) $ utctDay (env ^. time))
-          n
+          n $
+        length (env ^. tasks) + length (env ^. events) + 1
   setConfig $ Config (new : env ^. tasks) $ env ^. events
 
 addEvent ::
@@ -52,7 +53,9 @@ addEvent (OptEvent n d s e) = do
   case liftA2 TimeRange (readMaybe s') (readMaybe e') of
     Just r -> do
       liftIO $ putStrLn $ "Adding event '" <> n <> "'"
-      let new = Event n (addDays d $ utctDay $ env ^. time) r
+      let new =
+            Event n (addDays d $ utctDay $ env ^. time) r $
+            length (env ^. tasks) + length (env ^. events) + 1
       setConfig $ Config (env ^. tasks) $ new : env ^. events
     Nothing ->
       liftIO $
@@ -66,19 +69,28 @@ removeItem ::
      , HasTasks s [Task]
      , HasEvents s [Event]
      )
-  => String
+  => Int
   -> m ()
-removeItem n = do
+removeItem i = do
   env <- ask
-  let noName f = filter ((/= n) . view name) $ env ^. f
-      t = noName tasks
-      e = noName events
+  let byID f g = filter (g i . view identifier) $ env ^. f
+      ts = byID tasks (/=)
+      es = byID events (/=)
   liftIO $
-    if t == env ^. tasks && e == env ^. events
+    if ts == env ^. tasks && es == env ^. events
       then ioError $
-           mkIOError NoSuchThing ("task/event '" <> n <> "'") Nothing Nothing
-      else putStrLn $ "Removed '" <> n <> "'"
-  setConfig $ Config t e
+           mkIOError
+             NoSuchThing
+             ("task/event with ID " <> show i)
+             Nothing
+             Nothing
+      else case (byID tasks (==), byID events (==)) of
+             ([t], []) -> putStrLn $ "Removed task '" <> t ^. name <> "'"
+             ([], [e]) -> putStrLn $ "Removed event '" <> e ^. name <> "'"
+             _ ->
+               error
+                 "Mutliple tasks/events have the same ID. This is impossible."
+  setConfig $ Config ts es
 
 getConfig :: (HasConfigLocation env FilePath) => RIO env Config
 getConfig = do

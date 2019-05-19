@@ -13,6 +13,7 @@ data Event = Event
   { eventName :: String
   , eventDate :: Day
   , eventScheduled :: TimeRange
+  , eventIdentifier :: Int
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Event
@@ -20,7 +21,7 @@ instance ToJSON Event
 instance FromJSON Event
 
 eventToTask :: Day -> Event -> Task
-eventToTask today (Event n d s) =
+eventToTask today (Event n d s i) =
   Task
     (Just s)
     (if d == today
@@ -29,6 +30,7 @@ eventToTask today (Event n d s) =
     maxBound
     (addDays 1 today)
     n
+    i
 
 data OptEvent = OptEvent
   { optEventName :: String
@@ -40,3 +42,5 @@ data OptEvent = OptEvent
 makeFields ''Event
 
 makeFields ''OptEvent
+
+
