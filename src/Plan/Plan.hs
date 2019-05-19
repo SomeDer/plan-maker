@@ -14,19 +14,17 @@ import Prelude (putStrLn)
 import RIO
 
 planDay ::
-     ( MonadReader a1 m
-     , HasSituation a1 a2
-     , HasTime a2 UTCTime
-     , HasConfig a1 a3
-     , HasTasks a3 [Task]
-     , HasEvents a3 [Event]
+     ( MonadReader a m
+     , HasTime a UTCTime
+     , HasTasks a [Task]
+     , HasEvents a [Event]
      )
   => m (Set Task)
 planDay = do
   env <- ask
-  let UTCTime day t = env ^. situation . time
-      ts' = env ^. config . tasks
-      es = env ^. config . events
+  let UTCTime day t = env ^. time
+      ts' = env ^. tasks
+      es = env ^. events
       midnight' = TimeOfDay 23 59 59
       timeNow = timeToTimeOfDay t
       xs =
@@ -70,12 +68,10 @@ planDay = do
       xs
 
 printPlan ::
-     ( MonadReader a1 m
-     , HasSituation a1 a2
-     , HasTime a2 UTCTime
-     , HasConfig a1 a3
-     , HasTasks a3 [Task]
-     , HasEvents a3 [Event]
+     ( MonadReader a m
+     , HasTime a UTCTime
+     , HasTasks a [Task]
+     , HasEvents a [Event]
      , MonadIO m
      )
   => m ()
