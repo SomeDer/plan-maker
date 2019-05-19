@@ -20,6 +20,7 @@ data Config = Config
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Config
+
 instance FromJSON Config
 
 data Situation = Situation
@@ -28,14 +29,19 @@ data Situation = Situation
   }
 
 makeFields ''Env
+
 makeFields ''Config
+
 makeFields ''Situation
 
 instance HasConfigLocation Env FilePath where
-  configLocation = situation.configLocation
+  configLocation = situation . configLocation
+
 instance HasTime Env UTCTime where
-  time = situation.time
+  time = situation . time
+
 instance HasEvents Env [Event] where
-  events = config.events
+  events = config . events
+
 instance HasTasks Env [Task] where
-  tasks = config.tasks
+  tasks = config . tasks

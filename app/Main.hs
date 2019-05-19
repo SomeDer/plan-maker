@@ -5,8 +5,8 @@ import Data.Time
 import Options.Applicative
 import Plan.Env
 import Plan.Event
-import Plan.Plan
 import Plan.Functions
+import Plan.Plan
 import Plan.Task
 import Prelude (putStrLn)
 import RIO
@@ -46,9 +46,7 @@ opts :: Parser (RIO Env ())
 opts =
   hsubparser $
   command "task" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
-  command
-    "event"
-    (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
+  command "event" (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
   command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
   command "rm" (info (removeItem <$> nameOpt) (progDesc "Remove task"))
 
