@@ -12,6 +12,17 @@ import RIO
 import System.Directory
 import System.IO.Error
 
+getID :: (MonadReader s m, HasTasks s [Task], HasEvents s [Event]) => m Int
+getID = do
+  env <- ask
+  let f :: HasIdentifier a Int => [a] -> [Int]
+      f = fmap (^. identifier)
+      ids = f (env ^. tasks) <> f (env ^. events)
+  return $
+    if null ids
+      then 1
+      else maximum ids + 1
+
 addTask ::
      ( MonadReader s m
      , MonadIO m
@@ -25,14 +36,15 @@ addTask ::
 addTask (OptTask n i d t) = do
   env <- ask
   liftIO $ putStrLn $ "Adding task '" <> n <> "'"
+  taskId <- getID
   let new =
         Task
           Nothing
           (picosecondsToDiffTime $ round $ t * 3600 * 10 ^ (12 :: Int))
           i
           (addDays (toInteger d) $ utctDay (env ^. time))
-          n $
-        length (env ^. tasks) + length (env ^. events) + 1
+          n
+          taskId
   setConfig $ Config (new : env ^. tasks) $ env ^. events
 
 addEvent ::
@@ -47,15 +59,14 @@ addEvent ::
   -> m ()
 addEvent (OptEvent n d s e) = do
   env <- ask
+  eventId <- getID
   let f = (<> ":00")
       s' = f s
       e' = f e
   case liftA2 TimeRange (readMaybe s') (readMaybe e') of
     Just r -> do
       liftIO $ putStrLn $ "Adding event '" <> n <> "'"
-      let new =
-            Event n (addDays d $ utctDay $ env ^. time) r $
-            length (env ^. tasks) + length (env ^. events) + 1
+      let new = Event n (addDays d $ utctDay $ env ^. time) r eventId
       setConfig $ Config (env ^. tasks) $ new : env ^. events
     Nothing ->
       liftIO $
