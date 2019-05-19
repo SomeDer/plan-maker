@@ -42,22 +42,24 @@ eventOpts =
   strOption
     (long "end" <> short 'e' <> help "Time when the event ends. Format: hh:mm")
 
+opts :: Parser (RIO Env ())
+opts =
+  hsubparser $
+  command "task" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
+  command
+    "event"
+    (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
+  command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
+  command "rm" (info (removeItem <$> nameOpt) (progDesc "Remove task"))
+
 main :: IO ()
 main = do
-  time <- getCurrentTime
+  t <- getCurrentTime
   home <- getHomeDirectory
   let save = home <> "/.plan.yaml"
-      sit = Situation (ConfigFile save) (CurrentTime time)
+      sit = Situation save t
   c@(Config ts es) <- runRIO sit getConfig
   let env = Env c sit
-      opts =
-        hsubparser $
-        command "task" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
-        command
-          "event"
-          (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
-        command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
-        command "rm" (info (removeItem <$> nameOpt) (progDesc "Remove task"))
   args <- getArgs
   case args of
     "task":_ -> return ()
