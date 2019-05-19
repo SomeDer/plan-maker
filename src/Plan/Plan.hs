@@ -8,6 +8,7 @@ import Data.Set (elemAt, fromList, insert)
 import Data.Time
 import Plan.Env
 import Plan.Event
+import Plan.Functions
 import Plan.Task
 import Plan.TimeRange
 import Prelude (putStrLn)
@@ -31,9 +32,11 @@ planDay = do
         sortOn (view importance) $ ts' <>
         fmap
           ((eventToTask day .) $ \e ->
-             if e ^. scheduled . start < timeToTimeOfDay t
-               then set (scheduled . start) (timeToTimeOfDay t) e
-               else e)
+             if e ^. scheduled . start >= timeToTimeOfDay t
+               then e
+               else if e ^. scheduled . end < timeToTimeOfDay t
+                      then set identifier 0 e
+                      else set (scheduled . start) (timeToTimeOfDay t) e)
           (filter ((== day) . eventDate) es)
       f n ts =
         case n ^. scheduled of
@@ -69,6 +72,7 @@ planDay = do
 
 printPlan ::
      ( MonadReader a m
+     , HasConfigLocation a String
      , HasTime a UTCTime
      , HasTasks a [Task]
      , HasEvents a [Event]
@@ -76,7 +80,16 @@ printPlan ::
      )
   => m ()
 printPlan = do
+  env <- ask
+  mapM_ removeItem $ fmap (^. identifier) $
+    filter
+      (\e -> e ^. scheduled . end < timeToTimeOfDay (utctDayTime $ env ^. time)) $
+    env ^.
+    events
   d <- planDay
   forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i) ->
     let f = take 5 . show
-     in unless (i == 0) $ liftIO $ putStrLn $ show i <> ") " <> f s <> "-" <> f e <> ": " <> n
+     in unless (i == 0) $ liftIO $ putStrLn $ show i <> ") " <> f s <> "-" <>
+        f e <>
+        ": " <>
+        n
