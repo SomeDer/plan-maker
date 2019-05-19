@@ -12,6 +12,17 @@ import RIO
 import System.Directory
 import System.IO.Error
 
+getID :: (MonadReader s m, HasTasks s [Task], HasEvents s [Event]) => m Int
+getID = do
+  env <- ask
+  let f :: HasIdentifier a Int => [a] -> [Int]
+      f = fmap (^. identifier)
+      ids = f (env ^. tasks) <> f (env ^. events)
+  return $
+    if null ids
+      then 1
+      else maximum ids + 1
+
 addTask ::
      ( MonadReader s m
      , MonadIO m
@@ -25,6 +36,7 @@ addTask ::
 addTask (OptTask n i d t) = do
   env <- ask
   liftIO $ putStrLn $ "Adding task '" <> n <> "'"
+  taskId <- getID
   let new =
         Task
           Nothing
@@ -32,6 +44,7 @@ addTask (OptTask n i d t) = do
           i
           (addDays (toInteger d) $ utctDay (env ^. time))
           n
+          taskId
   setConfig $ Config (new : env ^. tasks) $ env ^. events
 
 addEvent ::
@@ -46,13 +59,14 @@ addEvent ::
   -> m ()
 addEvent (OptEvent n d s e) = do
   env <- ask
+  eventId <- getID
   let f = (<> ":00")
       s' = f s
       e' = f e
   case liftA2 TimeRange (readMaybe s') (readMaybe e') of
     Just r -> do
       liftIO $ putStrLn $ "Adding event '" <> n <> "'"
-      let new = Event n (addDays d $ utctDay $ env ^. time) r
+      let new = Event n (addDays d $ utctDay $ env ^. time) r eventId
       setConfig $ Config (env ^. tasks) $ new : env ^. events
     Nothing ->
       liftIO $
@@ -66,19 +80,28 @@ removeItem ::
      , HasTasks s [Task]
      , HasEvents s [Event]
      )
-  => String
+  => Int
   -> m ()
-removeItem n = do
+removeItem i = do
   env <- ask
-  let noName f = filter ((/= n) . view name) $ env ^. f
-      t = noName tasks
-      e = noName events
+  let byID f g = filter (g i . view identifier) $ env ^. f
+      ts = byID tasks (/=)
+      es = byID events (/=)
   liftIO $
-    if t == env ^. tasks && e == env ^. events
+    if ts == env ^. tasks && es == env ^. events
       then ioError $
-           mkIOError NoSuchThing ("task/event '" <> n <> "'") Nothing Nothing
-      else putStrLn $ "Removed '" <> n <> "'"
-  setConfig $ Config t e
+           mkIOError
+             NoSuchThing
+             ("task/event with ID " <> show i)
+             Nothing
+             Nothing
+      else case (byID tasks (==), byID events (==)) of
+             ([t], []) -> putStrLn $ "Removed task '" <> t ^. name <> "'"
+             ([], [e]) -> putStrLn $ "Removed event '" <> e ^. name <> "'"
+             _ ->
+               error
+                 "Mutliple tasks/events have the same ID. This is impossible."
+  setConfig $ Config ts es
 
 getConfig :: (HasConfigLocation env FilePath) => RIO env Config
 getConfig = do

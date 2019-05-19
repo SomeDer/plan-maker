@@ -16,6 +16,9 @@ import System.Environment
 nameOpt :: Parser String
 nameOpt = strOption (long "name" <> short 'n')
 
+idOpt :: Parser Int
+idOpt = option auto (long "id" <> short 'i' <> help "Task/event ID. This is shown to the left of its scheduled time.")
+
 taskOpts :: Parser OptTask
 taskOpts =
   OptTask <$> nameOpt <*>
@@ -48,7 +51,7 @@ opts =
   command "task" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
   command "event" (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
   command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
-  command "rm" (info (removeItem <$> nameOpt) (progDesc "Remove task"))
+  command "rm" (info (removeItem <$> idOpt) (progDesc "Remove task"))
 
 main :: IO ()
 main = do
