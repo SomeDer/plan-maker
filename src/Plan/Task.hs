@@ -1,15 +1,18 @@
+{-# LANGUAGE TemplateHaskell, FunctionalDependencies #-}
+
 module Plan.Task where
 
 import Data.Time
 import Data.Yaml
+import Lens.Micro.TH
 import Plan.TimeRange
 import RIO
 
 data Task = Task
-  { scheduled :: Maybe TimeRange
-  , timeNeeded :: DiffTime
-  , importance :: Int
-  , deadline :: Day
+  { taskScheduled :: Maybe TimeRange
+  , taskTimeNeeded :: DiffTime
+  , taskImportance :: Int
+  , taskDeadline :: Day
   , taskName :: String
   } deriving (Eq, Show, Generic)
 
@@ -25,8 +28,12 @@ instance Ord Task where
   _ <= _ = True
 
 data OptTask = OptTask
-  { optName :: String
-  , optImportance :: Int
-  , optDeadline :: Int
-  , optTime :: Double
+  { optTaskName :: String
+  , optTaskImportance :: Int
+  , optTaskDeadline :: Int
+  , optTaskTimeNeeded :: Double
   } deriving (Show)
+
+makeFields ''Task
+
+makeFields ''OptTask
