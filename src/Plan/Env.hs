@@ -5,7 +5,6 @@ module Plan.Env where
 import Data.Time
 import Data.Yaml
 import Lens.Micro.TH
-import Plan.Event
 import Plan.Task
 import RIO
 
