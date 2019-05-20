@@ -12,62 +12,76 @@ import RIO
 import System.Directory
 import System.IO.Error
 
-getID :: (MonadReader s m, HasTasks s [Task], HasEvents s [Event]) => m Int
+getID :: (MonadReader s m, HasTasks s [Task]) => m Int
 getID = do
   env <- ask
   let f :: HasIdentifier a Int => [a] -> [Int]
       f = fmap (^. identifier)
-      ids = f (env ^. tasks) <> f (env ^. events)
+      ids = f (env ^. tasks)
   return $
     if null ids
       then 1
       else maximum ids + 1
 
-addTask ::
+addTask' ::
      ( MonadReader s m
      , MonadIO m
-     , HasConfigLocation s String
      , HasTasks s [Task]
-     , HasEvents s [Event]
+     , HasConfigLocation s String
+     , Integral a2
      , HasTime s UTCTime
      )
-  => OptTask
+  => Maybe TimeRange
+  -> String
+  -> Int
+  -> a2
+  -> DiffTime
   -> m ()
-addTask (OptTask n i d t) = do
+addTask' s n i d t = do
   env <- ask
-  liftIO $ putStrLn $ "Adding task '" <> n <> "'"
+  when (isNothing s) $ liftIO $ putStrLn $ "Adding task '" <> n <> "'"
   taskId <- getID
   let new =
         Task
-          Nothing
-          (picosecondsToDiffTime $ round $ t * 3600 * 10 ^ (12 :: Int))
+          s
+          t
           i
           (addDays (toInteger d) $ utctDay (env ^. time))
           n
           taskId
-  setConfig $ Config (new : env ^. tasks) $ env ^. events
+  setConfig $ Config $ new : env ^. tasks
+
+addTask ::
+     ( MonadReader s m
+     , MonadIO m
+     , HasTasks s [Task]
+     , HasConfigLocation s String
+     , HasTime s UTCTime
+     )
+  => Maybe TimeRange
+  -> OptTask
+  -> m ()
+addTask s (OptTask n i d t) =
+  addTask' s n i d $ picosecondsToDiffTime (round $ t * 3600 * 10 ^ (12 :: Int))
 
 addEvent ::
      ( MonadReader s m
      , MonadIO m
      , HasConfigLocation s String
      , HasTasks s [Task]
-     , HasEvents s [Event]
      , HasTime s UTCTime
      )
   => OptEvent
   -> m ()
 addEvent (OptEvent n d s e) = do
-  env <- ask
-  eventId <- getID
   let f = (<> ":00")
       s' = f s
       e' = f e
   case liftA2 TimeRange (readMaybe s') (readMaybe e') of
     Just r -> do
       liftIO $ putStrLn $ "Adding event '" <> n <> "'"
-      let new = Event n (addDays d $ utctDay $ env ^. time) r eventId
-      setConfig $ Config (env ^. tasks) $ new : env ^. events
+      -- let new = Event n (addDays d $ utctDay $ env ^. time) r eventId
+      addTask' (Just r) n maxBound d $ timeRangeSize r
     Nothing ->
       liftIO $
       ioError $
@@ -78,7 +92,6 @@ removeItem ::
      , MonadIO m
      , HasConfigLocation s String
      , HasTasks s [Task]
-     , HasEvents s [Event]
      )
   => Int
   -> m ()
@@ -86,22 +99,21 @@ removeItem i = do
   env <- ask
   let byID f g = filter (g i . view identifier) $ env ^. f
       ts = byID tasks (/=)
-      es = byID events (/=)
   liftIO $
-    if ts == env ^. tasks && es == env ^. events
+    if ts == env ^. tasks
       then ioError $
            mkIOError
              NoSuchThing
              ("task/event with ID " <> show i)
              Nothing
              Nothing
-      else case (byID tasks (==), byID events (==)) of
-             ([t], []) -> putStrLn $ "Removed task '" <> t ^. name <> "'"
-             ([], [e]) -> putStrLn $ "Removed event '" <> e ^. name <> "'"
+      else case byID tasks (==) of
+             [t] -> putStrLn $ "Removed task '" <> t ^. name <> "'"
+             -- ([], [e]) -> putStrLn $ "Removed event '" <> e ^. name <> "'"
              _ ->
                error
                  "Mutliple tasks/events have the same ID. This is impossible."
-  setConfig $ Config ts es
+  setConfig $ Config ts
 
 getConfig :: (HasConfigLocation env FilePath) => RIO env Config
 getConfig = do
@@ -114,7 +126,7 @@ getConfig = do
            case d of
              Left err -> putStrLn (prettyPrintParseException err) >> exitFailure
              Right x -> return x
-    else return $ Config [] []
+    else return $ Config []
 
 setConfig ::
      (MonadReader s m, MonadIO m, ToJSON a, HasConfigLocation s String)

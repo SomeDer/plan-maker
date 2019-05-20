@@ -48,7 +48,7 @@ eventOpts =
 opts :: Parser (RIO Env ())
 opts =
   hsubparser $
-  command "task" (info (addTask <$> taskOpts) (progDesc "Add a new task")) <>
+  command "task" (info (addTask Nothing <$> taskOpts) (progDesc "Add a new task")) <>
   command "event" (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
   command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
   command "rm" (info (removeItem <$> idOpt) (progDesc "Remove task"))
@@ -59,14 +59,14 @@ main = do
   home <- getHomeDirectory
   let save = home <> "/.plan.yaml"
       sit = Situation save t
-  c@(Config ts es) <- runRIO sit getConfig
-  let env = Env c sit
+  Config ts <- runRIO sit getConfig
+  let env = Env (Config ts) sit
   args <- getArgs
   case args of
     "task":_ -> return ()
     "event":_ -> return ()
     _ ->
-      when (null ts && null es) $ do
+      when (null ts) $ do
         putStrLn "You don't have any tasks/events defined."
         putStrLn
           "Run plan task --help or plan event --help to see how to add them."

@@ -5,7 +5,6 @@ module Plan.Env where
 import Data.Time
 import Data.Yaml
 import Lens.Micro.TH
-import Plan.Event
 import Plan.Task
 import RIO
 
@@ -16,7 +15,6 @@ data Env = Env
 
 data Config = Config
   { configTasks :: [Task]
-  , configEvents :: [Event]
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Config
@@ -39,9 +37,6 @@ instance HasConfigLocation Env FilePath where
 
 instance HasTime Env UTCTime where
   time = situation . time
-
-instance HasEvents Env [Event] where
-  events = config . events
 
 instance HasTasks Env [Task] where
   tasks = config . tasks
