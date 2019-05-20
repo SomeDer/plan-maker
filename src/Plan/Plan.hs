@@ -7,40 +7,34 @@ import Data.Maybe
 import Data.Set (elemAt, fromList, insert)
 import Data.Time
 import Plan.Env
-import Plan.Event
-import Plan.Functions
 import Plan.Task
 import Plan.TimeRange
 import Prelude (putStrLn)
 import RIO
 
 planDay ::
-     ( MonadReader a m
-     , HasTime a UTCTime
-     , HasTasks a [Task]
-     , HasEvents a [Event]
-     )
-  => m (Set Task)
+     (MonadReader a m, HasTime a UTCTime, HasTasks a [Task]) => m (Set Task)
 planDay = do
   env <- ask
   let UTCTime day t = env ^. time
       ts' = env ^. tasks
-      es = env ^. events
       midnight' = TimeOfDay 23 59 59
       timeNow = timeToTimeOfDay t
-      xs =
-        sortOn (view importance) $ ts' <>
-        fmap
-          ((eventToTask day .) $ \e ->
-             if e ^. scheduled . start >= timeToTimeOfDay t
-               then e
-               else if e ^. scheduled . end < timeToTimeOfDay t
-                      then set identifier 0 e
-                      else set (scheduled . start) (timeToTimeOfDay t) e)
-          (filter ((== day) . eventDate) es)
+      xs = sortOn (view importance) ts'
       f n ts =
-        case n ^. scheduled of
-          Just _ -> insert n ts
+        case n ^. scheduled of 
+          Just e
+            | e ^. start >= timeToTimeOfDay t -> insert n ts
+            | n ^. deadline /= day -> ts
+            | e ^. end < timeToTimeOfDay t ->
+              flip insert ts $ set identifier 0 n
+            | otherwise ->
+              flip insert ts $
+              set
+                scheduled
+                (Just $ TimeRange (timeToTimeOfDay t) $ view end $ fromJust $ n ^.
+                 scheduled)
+                n
           Nothing ->
             let need =
                   diffTimeToPicoseconds (n ^. timeNeeded) `div`
@@ -75,17 +69,17 @@ printPlan ::
      , HasConfigLocation a String
      , HasTime a UTCTime
      , HasTasks a [Task]
-     , HasEvents a [Event]
      , MonadIO m
      )
   => m ()
 printPlan = do
-  env <- ask
+    {-
   mapM_ removeItem $ fmap (^. identifier) $
     filter
       (\e -> e ^. scheduled . end < timeToTimeOfDay (utctDayTime $ env ^. time)) $
     env ^.
     events
+    -}
   d <- planDay
   forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i) ->
     let f = take 5 . show

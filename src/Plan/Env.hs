@@ -16,7 +16,6 @@ data Env = Env
 
 data Config = Config
   { configTasks :: [Task]
-  , configEvents :: [Event]
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Config
@@ -39,9 +38,6 @@ instance HasConfigLocation Env FilePath where
 
 instance HasTime Env UTCTime where
   time = situation . time
-
-instance HasEvents Env [Event] where
-  events = config . events
 
 instance HasTasks Env [Task] where
   tasks = config . tasks
