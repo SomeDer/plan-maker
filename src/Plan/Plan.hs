@@ -2,6 +2,7 @@
 
 module Plan.Plan where
 
+import Control.Lens
 import Data.List (sortOn)
 import Data.Maybe
 import Data.Set (elemAt, fromList, insert)
@@ -10,7 +11,7 @@ import Plan.Env
 import Plan.Task
 import Plan.TimeRange
 import Prelude (putStrLn)
-import RIO
+import RIO hiding ((^.), view, set)
 
 planDay ::
      (MonadReader a m, HasTime a UTCTime, HasTasks a [Task]) => m (Set Task)
@@ -31,9 +32,8 @@ planDay = do
             | otherwise ->
               flip insert ts $
               set
-                scheduled
-                (Just $ TimeRange (timeToTimeOfDay t) $ view end $ fromJust $ n ^.
-                 scheduled)
+                (scheduled . _Just . start)
+                (timeToTimeOfDay t) 
                 n
           Nothing ->
             let need =
