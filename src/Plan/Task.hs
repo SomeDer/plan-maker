@@ -15,6 +15,8 @@ data Task = Task
   , taskDeadline :: Day
   , taskName :: String
   , taskIdentifier :: Int
+  , taskWorkedToday :: [TimeRange]
+  , taskWoringFrom :: Maybe TimeOfDay
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Task
@@ -22,7 +24,7 @@ instance ToJSON Task
 instance FromJSON Task
 
 instance Ord Task where
-  Task (Just (TimeRange s e)) _ _ _ _ _ <= Task (Just (TimeRange s' e')) _ _ _ _ _ =
+  Task (Just (TimeRange s e)) _ _ _ _ _ _ _ <= Task (Just (TimeRange s' e')) _ _ _ _ _ _ _ =
     if s == s'
       then e <= e'
       else s < s'

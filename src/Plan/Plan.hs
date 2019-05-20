@@ -59,8 +59,8 @@ planDay = do
     foldr
       f
       (fromList
-         [ Task (Just $ TimeRange timeNow timeNow) 0 0 day "Now" 0
-         , Task (Just $ TimeRange midnight' midnight') 0 0 day "Midnight" 0
+         [ Task (Just $ TimeRange timeNow timeNow) 0 0 day "Now" 0 [] Nothing
+         , Task (Just $ TimeRange midnight' midnight') 0 0 day "Midnight" 0 [] Nothing
          ])
       xs
 
@@ -81,7 +81,7 @@ printPlan = do
     events
     -}
   d <- planDay
-  forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i) ->
+  forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
     let f = take 5 . show
      in unless (i == 0) $ liftIO $ putStrLn $ show i <> ") " <> f s <> "-" <>
         f e <>

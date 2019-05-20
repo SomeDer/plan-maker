@@ -41,14 +41,7 @@ addTask' s n i d t = do
   env <- ask
   when (isNothing s) $ liftIO $ putStrLn $ "Adding task '" <> n <> "'"
   taskId <- getID
-  let new =
-        Task
-          s
-          t
-          i
-          (addDays (toInteger d) $ utctDay (env ^. time))
-          n
-          taskId
+  let new = Task s t i (addDays (toInteger d) $ utctDay (env ^. time)) n taskId [] Nothing
   setConfig $ Config $ new : env ^. tasks
 
 addTask ::
@@ -88,11 +81,7 @@ addEvent (OptEvent n d s e) = do
       userError "Input time in the format hh:mm. Examples: 07:58, 18:08."
 
 removeItem ::
-     ( MonadReader s m
-     , MonadIO m
-     , HasConfigLocation s String
-     , HasTasks s [Task]
-     )
+     (MonadReader s m, MonadIO m, HasConfigLocation s String, HasTasks s [Task])
   => Int
   -> m ()
 removeItem i = do
