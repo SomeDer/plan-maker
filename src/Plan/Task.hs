@@ -2,9 +2,9 @@
 
 module Plan.Task where
 
+import Control.Lens
 import Data.Time
 import Data.Yaml
-import Lens.Micro.TH
 import Plan.TimeRange
 import RIO
 

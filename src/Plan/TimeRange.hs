@@ -4,7 +4,7 @@ module Plan.TimeRange where
 
 import Data.Time
 import Data.Yaml
-import Lens.Micro.TH
+import Control.Lens
 import RIO
 
 data TimeRange = TimeRange
