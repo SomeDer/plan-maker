@@ -12,7 +12,7 @@ import Plan.Event
 import Plan.Task
 import Plan.TimeRange
 import Prelude
-import RIO hiding ((^.), set, view)
+import RIO hiding ((^.), over, set, view)
 import System.Directory
 import System.IO.Error
 
@@ -104,14 +104,36 @@ startWork i = do
       Nothing -> liftIO (noSuchIndex i) >> return 0
   let item = c !! n
   when (isJust $ item ^. workingFrom) $
-    liftIO $ ioError $ userError "Alreay working on this task"
+    liftIO $ ioError $ userError "already working on this task"
   when (isJust $ item ^. scheduled) $
-    liftIO $ ioError $ userError "This is an event, not a task"
+    liftIO $ ioError $ userError "this is an event, not a task"
   setConfig $
     Config $
-    c &
-    ix n .~
-    set workingFrom (Just $ timeToTimeOfDay $ utctDayTime $ env ^. time) item
+    set
+      (ix n . workingFrom)
+      (Just $ timeToTimeOfDay $ utctDayTime $ env ^. time)
+      c
+
+stopWork ::
+     (HasConfigLocation s FilePath, HasTime s UTCTime) => Int -> RIO s ()
+stopWork i = do
+  env <- ask
+  Config c <- getConfig
+  n <-
+    case findIndex ((== i) . view identifier) c of
+      Just x -> return x
+      Nothing -> liftIO (noSuchIndex i) >> return 0
+  let item = c !! n
+  case item ^. workingFrom of
+    Just x ->
+      setConfig $
+      Config $
+      set (ix n . workingFrom) Nothing $
+      over
+        (ix n . workedToday)
+        (++ [TimeRange x (timeToTimeOfDay $ utctDayTime $ env ^. time)])
+        c
+    Nothing -> liftIO $ ioError $ userError "you are not working on this"
 
 noSuchIndex :: Int -> IO ()
 noSuchIndex i =
