@@ -107,6 +107,7 @@ startWork i = do
     liftIO $ ioError $ userError "already working on this task"
   when (isJust $ item ^. scheduled) $
     liftIO $ ioError $ userError "this is an event, not a task"
+  liftIO $ putStrLn $ "Starting task '" <> item ^. name <> "'"
   setConfig $
     Config $
     set
@@ -114,8 +115,7 @@ startWork i = do
       (Just $ timeToTimeOfDay $ utctDayTime $ env ^. time)
       c
 
-stopWork ::
-     (HasConfigLocation s FilePath, HasTime s UTCTime) => Int -> RIO s ()
+stopWork :: (HasConfigLocation s FilePath, HasTime s UTCTime) => Int -> RIO s ()
 stopWork i = do
   env <- ask
   Config c <- getConfig
@@ -125,14 +125,15 @@ stopWork i = do
       Nothing -> liftIO (noSuchIndex i) >> return 0
   let item = c !! n
   case item ^. workingFrom of
-    Just x ->
+    Just x -> do
+      liftIO $ putStrLn $ "Starting task '" <> item ^. name <> "'"
       setConfig $
-      Config $
-      set (ix n . workingFrom) Nothing $
-      over
-        (ix n . workedToday)
-        (++ [TimeRange x (timeToTimeOfDay $ utctDayTime $ env ^. time)])
-        c
+        Config $
+        set (ix n . workingFrom) Nothing $
+        over
+          (ix n . workedToday)
+          (++ [TimeRange x (timeToTimeOfDay $ utctDayTime $ env ^. time)])
+          c
     Nothing -> liftIO $ ioError $ userError "you are not working on this"
 
 noSuchIndex :: Int -> IO ()
