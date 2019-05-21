@@ -16,7 +16,7 @@ data Task = Task
   , taskName :: String
   , taskIdentifier :: Int
   , taskWorkedToday :: [TimeRange]
-  , taskWoringFrom :: Maybe TimeOfDay
+  , taskWorkingFrom :: Maybe TimeOfDay
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Task

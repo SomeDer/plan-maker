@@ -1,5 +1,9 @@
+{-# LANGUAGE NoMonadComprehensions #-}
+
 module Plan.Functions where
 
+import Control.Lens
+import Data.List
 import Data.Time
 import Data.Yaml
 import GHC.IO.Exception
@@ -8,7 +12,7 @@ import Plan.Event
 import Plan.Task
 import Plan.TimeRange
 import Prelude
-import RIO
+import RIO hiding ((^.), set, view)
 import System.Directory
 import System.IO.Error
 
@@ -41,7 +45,16 @@ addTask' s n i d t = do
   env <- ask
   when (isNothing s) $ liftIO $ putStrLn $ "Adding task '" <> n <> "'"
   taskId <- getID
-  let new = Task s t i (addDays (toInteger d) $ utctDay (env ^. time)) n taskId [] Nothing
+  let new =
+        Task
+          s
+          t
+          i
+          (addDays (toInteger d) $ utctDay (env ^. time))
+          n
+          taskId
+          []
+          Nothing
   setConfig $ Config $ new : env ^. tasks
 
 addTask ::
@@ -80,6 +93,31 @@ addEvent (OptEvent n d s e) = do
       ioError $
       userError "Input time in the format hh:mm. Examples: 07:58, 18:08."
 
+startWork ::
+     (HasConfigLocation s FilePath, HasTime s UTCTime) => Int -> RIO s ()
+startWork i = do
+  env <- ask
+  Config c <- getConfig
+  n <-
+    case findIndex ((== i) . view identifier) c of
+      Just x -> return x
+      Nothing -> liftIO (noSuchIndex i) >> return 0
+  let item = c !! n
+  when (isJust $ item ^. workingFrom) $
+    liftIO $ ioError $ userError "Alreay working on this task"
+  when (isJust $ item ^. scheduled) $
+    liftIO $ ioError $ userError "This is an event, not a task"
+  setConfig $
+    Config $
+    c &
+    ix n .~
+    set workingFrom (Just $ timeToTimeOfDay $ utctDayTime $ env ^. time) item
+
+noSuchIndex :: Int -> IO ()
+noSuchIndex i =
+  ioError $
+  mkIOError NoSuchThing ("task/event with ID " <> show i) Nothing Nothing
+
 removeItem ::
      (MonadReader s m, MonadIO m, HasConfigLocation s String, HasTasks s [Task])
   => Int
@@ -90,12 +128,7 @@ removeItem i = do
       ts = byID tasks (/=)
   liftIO $
     if ts == env ^. tasks
-      then ioError $
-           mkIOError
-             NoSuchThing
-             ("task/event with ID " <> show i)
-             Nothing
-             Nothing
+      then noSuchIndex i
       else case byID tasks (==) of
              [t] -> putStrLn $ "Removed task '" <> t ^. name <> "'"
              -- ([], [e]) -> putStrLn $ "Removed event '" <> e ^. name <> "'"

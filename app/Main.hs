@@ -51,7 +51,8 @@ opts =
   command "task" (info (addTask Nothing <$> taskOpts) (progDesc "Add a new task")) <>
   command "event" (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
   command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
-  command "rm" (info (removeItem <$> idOpt) (progDesc "Remove task"))
+  command "rm" (info (removeItem <$> idOpt) (progDesc "Remove task")) <>
+  command "start" (info (startWork <$> idOpt) (progDesc "Start working on a task"))
 
 main :: IO ()
 main = do
