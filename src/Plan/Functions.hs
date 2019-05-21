@@ -86,7 +86,6 @@ addEvent (OptEvent n d s e) = do
   case liftA2 TimeRange (readMaybe s') (readMaybe e') of
     Just r -> do
       liftIO $ putStrLn $ "Adding event '" <> n <> "'"
-      -- let new = Event n (addDays d $ utctDay $ env ^. time) r eventId
       addTask' (Just r) n maxBound d $ timeRangeSize r
     Nothing ->
       liftIO $
@@ -154,7 +153,6 @@ removeItem i = do
       then noSuchIndex i
       else case byID tasks (==) of
              [t] -> putStrLn $ "Removed task '" <> t ^. name <> "'"
-             -- ([], [e]) -> putStrLn $ "Removed event '" <> e ^. name <> "'"
              _ ->
                error
                  "Mutliple tasks/events have the same ID. This is impossible."

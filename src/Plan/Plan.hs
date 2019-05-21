@@ -86,15 +86,7 @@ printPlan ::
      , MonadIO m
      )
   => m ()
-printPlan
-    {-
-  mapM_ removeItem $ fmap (^. identifier) $
-    filter
-      (\e -> e ^. scheduled . end < timeToTimeOfDay (utctDayTime $ env ^. time)) $
-    env ^.
-    events
-    -}
- = do
+printPlan = do
   d <- planDay
   forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
     let f = take 5 . show
