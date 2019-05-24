@@ -68,6 +68,7 @@ planDay = do
          , dummyTask "Midnight" $ TimeOfDay 23 59 59
          ])
       xs
+
 printPlan ::
      ( MonadReader a m
      , HasConfigLocation a String
@@ -76,9 +77,9 @@ printPlan ::
      , MonadIO m
      )
   => m ()
-printPlan =
-  planDay & (>>=) $
-  mapM_ $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
+printPlan = do
+  d <- planDay
+  forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
     let f = take 5 . show
      in unless (i == 0) $
         liftIO $ putStrLn $ show i <> ") " <> f s <> "-" <> f e <> ": " <> n
