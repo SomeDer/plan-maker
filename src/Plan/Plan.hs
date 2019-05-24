@@ -19,8 +19,6 @@ planDay = do
   env <- ask
   let UTCTime day t = env ^. time
       ts' = env ^. tasks
-      midnight' = TimeOfDay 23 59 59
-      timeNow = timeToTimeOfDay t
       xs = sortOn (view importance) ts'
       f n ts =
         case n ^. scheduled of
@@ -51,33 +49,25 @@ planDay = do
                     insert (set scheduled (Just plannedTimeRange) m) ts
                   | otherwise = attemptInsert (i + 1)
                   where
-                    planStart =
-                      view end $ fromJust $ view scheduled $ elemAt i ts
-                    planEnd =
-                      view start $ fromJust $ view scheduled $ elemAt (i + 1) ts
                     convert = diffTimeToPicoseconds . timeOfDayToTime
+                    planPart p i' =
+                      view p $ fromJust $ view scheduled $ elemAt (i + i') ts
+                    planStart = planPart end 0
+                    planEnd = planPart start 1
                     plannedTimeRange =
                       TimeRange planStart $
                       timeToTimeOfDay $
                       timeOfDayToTime planStart + picosecondsToDiffTime need
              in attemptInsert 0
+  let dummyTask n ti = Task (Just $ TimeRange ti ti) 0 0 day n 0 [] Nothing
   return $
     foldr
       f
       (fromList
-         [ Task (Just $ TimeRange timeNow timeNow) 0 0 day "Now" 0 [] Nothing
-         , Task
-             (Just $ TimeRange midnight' midnight')
-             0
-             0
-             day
-             "Midnight"
-             0
-             []
-             Nothing
+         [ dummyTask "Now" $ timeToTimeOfDay t
+         , dummyTask "Midnight" $ TimeOfDay 23 59 59
          ])
       xs
-
 printPlan ::
      ( MonadReader a m
      , HasConfigLocation a String
@@ -86,9 +76,9 @@ printPlan ::
      , MonadIO m
      )
   => m ()
-printPlan = do
-  d <- planDay
-  forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
+printPlan =
+  planDay & (>>=) $
+  mapM_ $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
     let f = take 5 . show
      in unless (i == 0) $
         liftIO $ putStrLn $ show i <> ") " <> f s <> "-" <> f e <> ": " <> n
