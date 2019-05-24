@@ -1,4 +1,4 @@
-{-# LANGUAGE NoMonadComprehensions #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
 
 module Plan.Functions where
 
@@ -16,7 +16,7 @@ import RIO hiding ((^.), over, set, view)
 import System.Directory
 import System.IO.Error
 
-getID :: (MonadReader s m, HasTasks s [Task]) => m Int
+getID :: (MonadReader a1 m, HasIdentifier a2 Int, HasTasks a1 [a2]) => m Int
 getID = do
   env <- ask
   let f :: HasIdentifier a Int => [a] -> [Int]
@@ -28,17 +28,17 @@ getID = do
       else maximum ids + 1
 
 addTask' ::
-     ( MonadReader s m
-     , MonadIO m
-     , HasTasks s [Task]
+     ( HasTasks s [Task]
      , HasConfigLocation s String
-     , Integral a2
+     , MonadIO m
+     , MonadReader s m
+     , Integral a
      , HasTime s UTCTime
      )
   => Maybe TimeRange
   -> String
   -> Int
-  -> a2
+  -> a
   -> DiffTime
   -> m ()
 addTask' s n i d t = do
@@ -58,10 +58,10 @@ addTask' s n i d t = do
   setConfig $ Config $ new : env ^. tasks
 
 addTask ::
-     ( MonadReader s m
-     , MonadIO m
-     , HasTasks s [Task]
+     ( HasTasks s [Task]
      , HasConfigLocation s String
+     , MonadIO m
+     , MonadReader s m
      , HasTime s UTCTime
      )
   => Maybe TimeRange
@@ -71,10 +71,10 @@ addTask s (OptTask n i d t) =
   addTask' s n i d $ picosecondsToDiffTime (round $ t * 3600 * 10 ^ (12 :: Int))
 
 addEvent ::
-     ( MonadReader s m
-     , MonadIO m
-     , HasConfigLocation s String
+     ( MonadIO m
      , HasTasks s [Task]
+     , HasConfigLocation s String
+     , MonadReader s m
      , HasTime s UTCTime
      )
   => OptEvent
@@ -92,16 +92,20 @@ addEvent (OptEvent n d s e) = do
       ioError $
       userError "Input time in the format hh:mm. Examples: 07:58, 18:08."
 
-startWork ::
-     (HasConfigLocation s FilePath, HasTime s UTCTime) => Int -> RIO s ()
-startWork i = do
-  env <- ask
+getItem :: HasConfigLocation a FilePath => Int -> RIO a Task
+getItem i = do
   Config c <- getConfig
   n <-
     case findIndex ((== i) . view identifier) c of
       Just x -> return x
       Nothing -> liftIO (noSuchIndex i) >> return 0
-  let item = c !! n
+  return $ c !! n
+
+startWork :: (HasConfigLocation s String, HasTime s UTCTime) => Int -> RIO s ()
+startWork i = do
+  env <- ask
+  Config c <- getConfig
+  item <- getItem i
   when (isJust $ item ^. workingFrom) $
     liftIO $ ioError $ userError "already working on this task"
   when (isJust $ item ^. scheduled) $
@@ -110,55 +114,42 @@ startWork i = do
   setConfig $
     Config $
     set
-      (ix n . workingFrom)
+      (ix i . workingFrom)
       (Just $ timeToTimeOfDay $ utctDayTime $ env ^. time)
       c
 
-stopWork :: (HasConfigLocation s FilePath, HasTime s UTCTime) => Int -> RIO s ()
+stopWork :: (HasConfigLocation s String, HasTime s UTCTime) => Int -> RIO s ()
 stopWork i = do
   env <- ask
   Config c <- getConfig
-  n <-
-    case findIndex ((== i) . view identifier) c of
-      Just x -> return x
-      Nothing -> liftIO (noSuchIndex i) >> return 0
-  let item = c !! n
+  item <- getItem i
   case item ^. workingFrom of
     Just x -> do
       liftIO $ putStrLn $ "Starting task '" <> item ^. name <> "'"
       setConfig $
         Config $
-        set (ix n . workingFrom) Nothing $
+        set (ix i . workingFrom) Nothing $
         over
-          (ix n . workedToday)
+          (ix i . workedToday)
           (++ [TimeRange x (timeToTimeOfDay $ utctDayTime $ env ^. time)])
           c
     Nothing -> liftIO $ ioError $ userError "you are not working on this"
 
-noSuchIndex :: Int -> IO ()
+noSuchIndex :: Show a1 => a1 -> IO a2
 noSuchIndex i =
   ioError $
   mkIOError NoSuchThing ("task/event with ID " <> show i) Nothing Nothing
 
 removeItem ::
-     (MonadReader s m, MonadIO m, HasConfigLocation s String, HasTasks s [Task])
-  => Int
-  -> m ()
+     (HasConfigLocation s FilePath, HasTasks s [Task]) => Int -> RIO s ()
 removeItem i = do
   env <- ask
-  let byID f g = filter (g i . view identifier) $ env ^. f
-      ts = byID tasks (/=)
-  liftIO $
-    if ts == env ^. tasks
-      then noSuchIndex i
-      else case byID tasks (==) of
-             [t] -> putStrLn $ "Removed task '" <> t ^. name <> "'"
-             _ ->
-               error
-                 "Mutliple tasks/events have the same ID. This is impossible."
-  setConfig $ Config ts
+  item <- getItem i
+  liftIO $ putStrLn $ "Removed task '" <> item ^. name <> "'"
+  setConfig $ Config $ filter (/= item) $ env ^. tasks
 
-getConfig :: (HasConfigLocation env FilePath) => RIO env Config
+getConfig ::
+     (MonadReader a m, MonadIO m, HasConfigLocation a String) => m Config
 getConfig = do
   env <- ask
   let f = env ^. configLocation
