@@ -92,7 +92,8 @@ addEvent (OptEvent n d s e) = do
       ioError $
       userError "Input time in the format hh:mm. Examples: 07:58, 18:08."
 
-getItem :: HasConfigLocation a FilePath => Int -> RIO a Task
+getItem ::
+     (MonadIO m, HasConfigLocation a String, MonadReader a m) => Int -> m Task
 getItem i = do
   Config c <- getConfig
   n <-
@@ -101,7 +102,10 @@ getItem i = do
       Nothing -> liftIO (noSuchIndex i) >> return 0
   return $ c !! n
 
-startWork :: (HasConfigLocation s String, HasTime s UTCTime) => Int -> RIO s ()
+startWork ::
+     (MonadReader s m, MonadIO m, HasConfigLocation s String, HasTime s UTCTime)
+  => Int
+  -> m ()
 startWork i = do
   env <- ask
   Config c <- getConfig
@@ -118,7 +122,10 @@ startWork i = do
       (Just $ timeToTimeOfDay $ utctDayTime $ env ^. time)
       c
 
-stopWork :: (HasConfigLocation s String, HasTime s UTCTime) => Int -> RIO s ()
+stopWork ::
+     (HasConfigLocation s String, MonadIO m, MonadReader s m, HasTime s UTCTime)
+  => Int
+  -> m ()
 stopWork i = do
   env <- ask
   Config c <- getConfig
@@ -138,10 +145,12 @@ stopWork i = do
 noSuchIndex :: Show a1 => a1 -> IO a2
 noSuchIndex i =
   ioError $
-  mkIOError NoSuchThing ("task/event with ID " <> show i) Nothing Nothing
+  mkIOError NoSuchThing "task/event" Nothing (Just $ show i)
 
 removeItem ::
-     (HasConfigLocation s FilePath, HasTasks s [Task]) => Int -> RIO s ()
+     (MonadReader s m, MonadIO m, HasConfigLocation s String, HasTasks s [Task])
+  => Int
+  -> m ()
 removeItem i = do
   env <- ask
   item <- getItem i

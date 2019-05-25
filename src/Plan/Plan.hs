@@ -8,6 +8,7 @@ import Data.Maybe
 import Data.Set (elemAt, fromList, insert)
 import Data.Time
 import Plan.Env
+import Plan.Functions
 import Plan.Task
 import Plan.TimeRange
 import Prelude (putStrLn)
@@ -19,7 +20,7 @@ planDay = do
   env <- ask
   let UTCTime day t = env ^. time
       ts' = env ^. tasks
-      xs = sortOn (view importance) ts'
+      xs = filter ((day <) . view deadline) $ sortOn (view importance) ts'
       f n ts =
         case n ^. scheduled of
           Just e
@@ -78,7 +79,14 @@ printPlan ::
      )
   => m ()
 printPlan = do
+  env <- ask
   d <- planDay
+  let day = utctDay $ env ^. time
+      ts = env ^. tasks
+      ts' = filter ((day >=) . view deadline) ts
+  unless (null ts') $ do
+    liftIO $ putStrLn "Some tasks were finished and are going to be removed."
+    mapM_  removeItem $ fmap (view identifier) ts'
   forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
     let f = take 5 . show
      in unless (i == 0) $
