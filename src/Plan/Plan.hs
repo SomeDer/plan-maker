@@ -89,7 +89,7 @@ printPlan ::
 printPlan = do
   env <- ask
   Config ts <- get
-  d <- planDay
+  d <- fmap toList planDay
   let day = utctDay $ env ^. time
       ts' =
         flip filter ts $ \x ->
@@ -101,12 +101,16 @@ printPlan = do
           else return $ show i <> ") " <> f s <> "-" <> f e <> ": " <> n
   fmap (init' . unlines . filter (/= "")) $
     if null ts'
-      then forM (toList d) $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
-             let f = take 5 . show
-              in return $
-                 if i == 0
-                   then ""
-                   else show i <> ") " <> f s <> "-" <> f e <> ": " <> n
+      then if length d <= 2
+             then throwError $
+                  "You don't have any tasks/events for today.\n" <>
+                  "Run plan task --help or plan event --help to see how to add them."
+             else forM d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
+                    let f = take 5 . show
+                     in return $
+                        if i == 0
+                          then ""
+                          else show i <> ") " <> f s <> "-" <> f e <> ": " <> n
       else do
         a <- mapM removeItem $ fmap (view identifier) ts'
         return $ "Some tasks were finished and are going to be removed." : a

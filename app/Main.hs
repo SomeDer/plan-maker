@@ -2,7 +2,6 @@
 
 module Main where
 
-import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
@@ -78,15 +77,6 @@ main = do
   c@(Config ts) <- runReaderT getConfig sit
   let env = Env (Config ts) sit
   args <- getArgs
-  case args of
-    "task":_ -> return ()
-    "event":_ -> return ()
-    _ ->
-      when (null ts) $ do
-        putStrLn "You don't have any tasks/events defined."
-        putStrLn
-          "Run plan task --help or plan event --help to see how to add them."
-        exitFailure
   if null args
     then do
       (a, s) <- flip runStateT c $ runExceptT $ runReaderT printPlan env
