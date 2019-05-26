@@ -35,7 +35,7 @@ taskOpts =
     (long "importance" <> short 'i' <> value 0 <> help "Task importance") <*>
   option
     auto
-    (long "deadline" <> short 'd' <> value 1 <> help "Days until deadline") <*>
+    (long "deadline" <> short 'd' <> value 0 <> help "Days until deadline") <*>
   option
     auto
     (long "time" <> short 't' <> value 1 <> help "Hours needed to complete task")

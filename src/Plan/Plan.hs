@@ -25,7 +25,7 @@ timeNeededToday n (UTCTime day t) =
         mappend (n ^. workedToday) $
         maybe [] ((: []) . flip TimeRange (timeToTimeOfDay t)) $
         n ^. workingFrom
-   in diffTimeToPicoseconds need `div` diffDays (n ^. deadline) day
+   in diffTimeToPicoseconds need & div $ diffDays (n ^. deadline) day + 1
 
 planDay ::
      (MonadReader a m, HasTasks a [Task], HasTime a UTCTime) => m (Set Task)
@@ -91,7 +91,9 @@ printPlan = do
   Config ts <- get
   d <- planDay
   let day = utctDay $ env ^. time
-      ts' = flip filter ts $ \x -> day > x ^. deadline || timeNeededToday x (env ^. time) <= 0
+      ts' =
+        flip filter ts $ \x ->
+          day > (x ^. deadline) || timeNeededToday x (env ^. time) <= 0
   forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
     let f = take 5 . show
      in if i == 0
