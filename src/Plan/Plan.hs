@@ -36,7 +36,7 @@ planDay = do
       xs =
         filter
           (\x ->
-             (bool (==) (<) $ isNothing $ x ^. scheduled) day $ x ^. deadline) $
+             (bool (==) (<=) $ isNothing $ x ^. scheduled) day $ x ^. deadline) $
         sortOn (view importance) ts'
       f n ts =
         case n ^. scheduled of
