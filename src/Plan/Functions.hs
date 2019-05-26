@@ -159,7 +159,7 @@ removeItem i = do
   Config c <- get
   (item, _) <- getIndex i
   put $ Config $ filter (/= item) c
-  return $ "Removed task '" <> item ^. name <> "'"
+  return $ "Removing '" <> item ^. name <> "'"
 
 getConfig ::
      (MonadReader a m, MonadIO m, HasConfigLocation a String) => m Config
