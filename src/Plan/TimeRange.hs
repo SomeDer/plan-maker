@@ -2,10 +2,10 @@
 
 module Plan.TimeRange where
 
+import Control.Lens
 import Data.Time
 import Data.Yaml
-import Lens.Micro.TH
-import RIO
+import GHC.Generics
 
 data TimeRange = TimeRange
   { timeRangeStart :: TimeOfDay

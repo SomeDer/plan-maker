@@ -1,22 +1,28 @@
+{-# LANGUAGE NoMonomorphismRestriction #-}
+
 module Plan.Functions where
 
+import Control.Lens
+import Control.Monad.Except
+import Control.Monad.Reader
+import Control.Monad.State
+import Data.List
+import Data.Maybe
 import Data.Time
 import Data.Yaml
-import GHC.IO.Exception
 import Plan.Env
 import Plan.Event
 import Plan.Task
 import Plan.TimeRange
 import Prelude
-import RIO
 import System.Directory
-import System.IO.Error
+import System.Exit
+import Text.Read (readMaybe)
 
-getID :: (MonadReader s m, HasTasks s [Task]) => m Int
+getID :: (MonadReader a1 m, HasTasks a1 [Task]) => m Int
 getID = do
   env <- ask
-  let f :: HasIdentifier a Int => [a] -> [Int]
-      f = fmap (^. identifier)
+  let f = fmap (view identifier)
       ids = f (env ^. tasks)
   return $
     if null ids
@@ -24,22 +30,21 @@ getID = do
       else maximum ids + 1
 
 addTask' ::
-     ( MonadReader s m
-     , MonadIO m
-     , HasTasks s [Task]
-     , HasConfigLocation s String
-     , Integral a2
-     , HasTime s UTCTime
+     ( MonadReader a1 m
+     , MonadState Config m
+     , HasTasks a1 [Task]
+     , Integral a
+     , HasTime a1 UTCTime
      )
   => Maybe TimeRange
   -> String
   -> Int
-  -> a2
+  -> a
   -> DiffTime
-  -> m ()
+  -> m String
 addTask' s n i d t = do
   env <- ask
-  when (isNothing s) $ liftIO $ putStrLn $ "Adding task '" <> n <> "'"
+  Config c <- get
   taskId <- getID
   let new =
         Task
@@ -49,73 +54,115 @@ addTask' s n i d t = do
           (addDays (toInteger d) $ utctDay (env ^. time))
           n
           taskId
-  setConfig $ Config $ new : env ^. tasks
+          []
+          Nothing
+  put $ Config $ new : c
+  return $
+    if isNothing s
+      then "Adding task '" <> n <> "'"
+      else ""
 
 addTask ::
-     ( MonadReader s m
-     , MonadIO m
-     , HasTasks s [Task]
-     , HasConfigLocation s String
-     , HasTime s UTCTime
+     ( MonadReader a1 m
+     , MonadState Config m
+     , HasTasks a1 [Task]
+     , HasTime a1 UTCTime
      )
   => Maybe TimeRange
   -> OptTask
-  -> m ()
+  -> m String
 addTask s (OptTask n i d t) =
   addTask' s n i d $ picosecondsToDiffTime (round $ t * 3600 * 10 ^ (12 :: Int))
 
 addEvent ::
-     ( MonadReader s m
-     , MonadIO m
-     , HasConfigLocation s String
-     , HasTasks s [Task]
-     , HasTime s UTCTime
+     ( MonadReader a1 m
+     , MonadState Config m
+     , HasTasks a1 [Task]
+     , HasTime a1 UTCTime
+     , MonadError String m
      )
   => OptEvent
-  -> m ()
+  -> m String
 addEvent (OptEvent n d s e) = do
   let f = (<> ":00")
       s' = f s
       e' = f e
-  case liftA2 TimeRange (readMaybe s') (readMaybe e') of
+  case liftM2 TimeRange (readMaybe s') (readMaybe e') of
     Just r -> do
-      liftIO $ putStrLn $ "Adding event '" <> n <> "'"
-      -- let new = Event n (addDays d $ utctDay $ env ^. time) r eventId
-      addTask' (Just r) n maxBound d $ timeRangeSize r
+      _ <- addTask' (Just r) n maxBound d $ timeRangeSize r
+      return $ "Adding event '" <> n <> "'"
     Nothing ->
-      liftIO $
-      ioError $
-      userError "Input time in the format hh:mm. Examples: 07:58, 18:08."
+      throwError "Input time in the format hh:mm. Examples: 07:58, 18:00."
 
-removeItem ::
-     ( MonadReader s m
-     , MonadIO m
-     , HasConfigLocation s String
-     , HasTasks s [Task]
+getIndex :: (MonadState Config m, MonadError String m) => Int -> m (Task, Int)
+getIndex i = do
+  Config c <- get
+  n <-
+    case findIndex ((== i) . view identifier) c of
+      Just x -> return x
+      Nothing -> noSuchIndex i
+  return (c !! n, n)
+
+startWork ::
+     ( MonadState Config m
+     , MonadReader s m
+     , MonadError String m
+     , HasTime s UTCTime
      )
   => Int
-  -> m ()
-removeItem i = do
+  -> m String
+startWork i = do
   env <- ask
-  let byID f g = filter (g i . view identifier) $ env ^. f
-      ts = byID tasks (/=)
-  liftIO $
-    if ts == env ^. tasks
-      then ioError $
-           mkIOError
-             NoSuchThing
-             ("task/event with ID " <> show i)
-             Nothing
-             Nothing
-      else case byID tasks (==) of
-             [t] -> putStrLn $ "Removed task '" <> t ^. name <> "'"
-             -- ([], [e]) -> putStrLn $ "Removed event '" <> e ^. name <> "'"
-             _ ->
-               error
-                 "Mutliple tasks/events have the same ID. This is impossible."
-  setConfig $ Config ts
+  c <- get
+  (item, n) <- getIndex i
+  put $
+    Config $
+    set
+      (ix n . workingFrom)
+      (Just $ timeToTimeOfDay $ utctDayTime $ env ^. time) $
+    c ^. tasks
+  if isJust $ item ^. workingFrom
+    then throwError "Already working on this task"
+    else if isJust $ item ^. scheduled
+           then throwError "This is an event, not a task"
+           else return $ "Starting task '" <> item ^. name <> "'"
 
-getConfig :: (HasConfigLocation env FilePath) => RIO env Config
+stopWork ::
+     ( MonadError String m
+     , MonadReader s m
+     , MonadState Config m
+     , HasTime s UTCTime
+     )
+  => Int
+  -> m String
+stopWork i = do
+  env <- ask
+  c <- get
+  (item, n) <- getIndex i
+  case item ^. workingFrom of
+    Just x -> do
+      put $
+        Config $
+        set (ix n . workingFrom) Nothing $
+        over
+          (ix n . workedToday)
+          (++ [TimeRange x (timeToTimeOfDay $ utctDayTime $ env ^. time)]) $
+        c ^. tasks
+      return $ "Stopping task '" <> item ^. name <> "'"
+    Nothing -> throwError "You are not working on this"
+
+noSuchIndex :: (MonadError String m, Show a1) => a1 -> m a2
+noSuchIndex i = throwError $ "There is no task/event with index " <> show i
+
+removeItem :: (MonadState Config m, MonadError String m) => Int -> m String
+removeItem i = do
+  Config c <- get
+  (item, _) <- getIndex i
+  put $ Config $ filter (/= item) c
+  return $ "Removing '" <> item ^. name <> "'"
+
+getConfig ::
+     (MonadReader a m, MonadIO m, HasConfigLocation a String) => m Config
 getConfig = do
   env <- ask
   let f = env ^. configLocation

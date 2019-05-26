@@ -2,27 +2,44 @@
 
 module Plan.Plan where
 
+import Control.Lens
+import Control.Monad.Except
+import Control.Monad.Reader
+import Control.Monad.State
+import Data.Bool
 import Data.List (sortOn)
 import Data.Maybe
-import Data.Set (elemAt, fromList, insert)
+import Data.Set (Set, elemAt, fromList, insert, toList)
 import Data.Time
 import Plan.Env
+import Plan.Functions
 import Plan.Task
 import Plan.TimeRange
-import Prelude (putStrLn)
-import RIO
+
+timeNeededToday :: Task -> UTCTime -> Integer
+timeNeededToday n (UTCTime day t) =
+  let need =
+        n ^. timeNeeded & flip subtract $
+        sum $
+        fmap timeRangeSize $
+        mappend (n ^. workedToday) $
+        maybe [] ((: []) . flip TimeRange (timeToTimeOfDay t)) $
+        n ^. workingFrom
+   in diffTimeToPicoseconds need & div $ diffDays (n ^. deadline) day + 1
 
 planDay ::
-     (MonadReader a m, HasTime a UTCTime, HasTasks a [Task]) => m (Set Task)
+     (MonadReader a m, HasTasks a [Task], HasTime a UTCTime) => m (Set Task)
 planDay = do
   env <- ask
   let UTCTime day t = env ^. time
       ts' = env ^. tasks
-      midnight' = TimeOfDay 23 59 59
-      timeNow = timeToTimeOfDay t
-      xs = sortOn (view importance) ts'
+      xs =
+        filter
+          (\x ->
+             (bool (==) (<) $ isNothing $ x ^. scheduled) day $ x ^. deadline) $
+        sortOn (view importance) ts'
       f n ts =
-        case n ^. scheduled of 
+        case n ^. scheduled of
           Just e
             | e ^. start >= timeToTimeOfDay t -> insert n ts
             | n ^. deadline /= day -> ts
@@ -30,60 +47,74 @@ planDay = do
               flip insert ts $ set identifier 0 n
             | otherwise ->
               flip insert ts $
-              set
-                scheduled
-                (Just $ TimeRange (timeToTimeOfDay t) $ view end $ fromJust $ n ^.
-                 scheduled)
-                n
+              set (scheduled . _Just . start) (timeToTimeOfDay t) n
           Nothing ->
-            let need =
-                  diffTimeToPicoseconds (n ^. timeNeeded) `div`
-                  diffDays (n ^. deadline) day
+            let need = timeNeededToday n (UTCTime day t)
                 attemptInsert i
                   | i + 1 >= length ts = ts
                   | convert planEnd - convert planStart >= need =
-                    insert (set scheduled (Just plannedTimeRange) n) ts
+                    flip insert ts $
+                    set timeNeeded (picosecondsToDiffTime need) $
+                    set scheduled (Just plannedTimeRange) n
                   | otherwise = attemptInsert (i + 1)
                   where
-                    planStart =
-                      view end $ fromJust $ view scheduled $ elemAt i ts
-                    planEnd =
-                      view start $ fromJust $ view scheduled $ elemAt (i + 1) ts
                     convert = diffTimeToPicoseconds . timeOfDayToTime
+                    planPart p i' =
+                      view p $ fromJust $ view scheduled $ elemAt (i + i') ts
+                    planStart = planPart end 0
+                    planEnd = planPart start 1
                     plannedTimeRange =
-                      TimeRange planStart $ timeToTimeOfDay $
-                      timeOfDayToTime planStart +
-                      picosecondsToDiffTime need
+                      TimeRange planStart $
+                      timeToTimeOfDay $
+                      timeOfDayToTime planStart + picosecondsToDiffTime need
              in attemptInsert 0
+  let dummyTask n ti = Task (Just $ TimeRange ti ti) 0 0 day n 0 [] Nothing
   return $
     foldr
       f
       (fromList
-         [ Task (Just $ TimeRange timeNow timeNow) 0 0 day "Now" 0
-         , Task (Just $ TimeRange midnight' midnight') 0 0 day "Midnight" 0
+         [ dummyTask "Now" $ timeToTimeOfDay t
+         , dummyTask "Midnight" $ TimeOfDay 23 59 59
          ])
       xs
 
 printPlan ::
-     ( MonadReader a m
-     , HasConfigLocation a String
-     , HasTime a UTCTime
+     ( MonadState Config m
+     , MonadError String m
+     , MonadReader a m
      , HasTasks a [Task]
-     , MonadIO m
+     , HasTime a UTCTime
      )
-  => m ()
+  => m String
 printPlan = do
-    {-
-  mapM_ removeItem $ fmap (^. identifier) $
-    filter
-      (\e -> e ^. scheduled . end < timeToTimeOfDay (utctDayTime $ env ^. time)) $
-    env ^.
-    events
-    -}
-  d <- planDay
-  forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i) ->
+  env <- ask
+  Config ts <- get
+  d <- fmap toList planDay
+  let day = utctDay $ env ^. time
+      ts' =
+        flip filter ts $ \x ->
+          day > (x ^. deadline) || timeNeededToday x (env ^. time) <= 0
+  forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
     let f = take 5 . show
-     in unless (i == 0) $ liftIO $ putStrLn $ show i <> ") " <> f s <> "-" <>
-        f e <>
-        ": " <>
-        n
+     in if i == 0
+          then return ""
+          else return $ show i <> ") " <> f s <> "-" <> f e <> ": " <> n
+  fmap (init' . unlines . filter (/= "")) $
+    if null ts'
+      then if length d <= 2
+             then throwError $
+                  "You don't have any tasks/events for today.\n" <>
+                  "Run plan task --help or plan event --help to see how to add them."
+             else forM d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
+                    let f = take 5 . show
+                     in return $
+                        if i == 0
+                          then ""
+                          else show i <> ") " <> f s <> "-" <> f e <> ": " <> n
+      else do
+        a <- mapM removeItem $ fmap (view identifier) ts'
+        return $ "Some tasks were finished and are going to be removed." : a
+
+init' :: [a] -> [a]
+init' [] = []
+init' xs = init xs

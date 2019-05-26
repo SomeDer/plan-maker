@@ -25,17 +25,15 @@ dependencies:
 - containers
 - directory
 - optparse-applicative
-- rio
-- data-has
 - yaml
-- microlens-th
+- lens
+- mtl
 
 library:
   source-dirs: src
 
 ghc-options:
 - -Wall
-- -XNoImplicitPrelude
 - -XFlexibleContexts
 - -XFlexibleInstances
 - -XMultiParamTypeClasses
