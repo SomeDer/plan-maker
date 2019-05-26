@@ -24,20 +24,29 @@ idOpt =
   option
     auto
     (long "id" <> short 'i' <>
-     help "Task/event ID. This is shown to the left of its scheduled time.")
+     help "Task/event ID. This is shown to the left of its scheduled time." <>
+     metavar "INT")
 
 taskOpts :: Parser OptTask
 taskOpts =
   OptTask <$> nameOpt <*>
   option
     auto
-    (long "importance" <> short 'i' <> value 0 <> help "Task importance") <*>
+    (long "importance" <> short 'i' <> value 0 <>
+     help
+       "Task importance. Can be any reasonable integer (positive or negative) and the default is 0. Tasks with a higher importance are done first." <>
+     metavar "INT") <*>
   option
     auto
-    (long "deadline" <> short 'd' <> value 0 <> help "Days until deadline") <*>
+    (long "deadline" <> short 'd' <> value 0 <>
+     help
+       "Days until deadline. It is assumed that you can work on the last day, so a value of 0 (default) means that you will do all of it today (but it is not overdue)." <>
+     metavar "DAYS") <*>
   option
     auto
-    (long "time" <> short 't' <> value 1 <> help "Hours needed to complete task")
+    (long "time" <> short 't' <> value 1 <>
+     help "Hours needed to complete the task. Default: 1." <>
+     metavar "HOURS")
 
 eventOpts :: Parser OptEvent
 eventOpts =
@@ -45,12 +54,14 @@ eventOpts =
   option
     auto
     (long "days" <> short 'd' <> value 0 <>
-     help "Days until event. 0 means it's happening today.") <*>
+     help "Days until event. 0 (default) means it's happening today.") <*>
   strOption
     (long "start" <> short 's' <>
-     help "Time when the event starts. Format: hh:mm") <*>
+     help "Time when the event starts. Format: hh:mm" <>
+     metavar "TIME") <*>
   strOption
-    (long "end" <> short 'e' <> help "Time when the event ends. Format: hh:mm")
+    (long "end" <> short 'e' <> help "Time when the event ends. Format: hh:mm" <>
+     metavar "TIME")
 
 opts ::
      (MonadReader Env m, MonadState Config m, MonadError String m)
@@ -59,8 +70,8 @@ opts =
   hsubparser $
   command
     "task"
-    (info (addTask Nothing <$> taskOpts) (progDesc "Add a new task")) <>
-  command "event" (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
+    (info (addTask Nothing <$> taskOpts) (progDesc "Adds a task. A task can be done at any time when there isn't an event.")) <>
+  command "event" (info (addEvent <$> eventOpts) (progDesc "Add a new event. An event has to be done at a specific time.")) <>
   command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
   command "rm" (info (removeItem <$> idOpt) (progDesc "Remove task")) <>
   command
