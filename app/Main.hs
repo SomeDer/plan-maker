@@ -77,17 +77,14 @@ main = do
   c@(Config ts) <- runReaderT getConfig sit
   let env = Env (Config ts) sit
   args <- getArgs
-  if null args
-    then do
-      (a, s) <- flip runStateT c $ runExceptT $ runReaderT printPlan env
-      err a
-      runReaderT (setConfig s) sit
-    else do
-      (a, s) <-
-        do p <- execParser (info (opts <**> helper) idm)
-           flip runStateT c $ runExceptT $ runReaderT p env
-      err a
-      runReaderT (setConfig s) sit
+  (a, s) <-
+    do p <-
+         if null args
+           then return printPlan
+           else execParser (info (opts <**> helper) idm)
+       flip runStateT c $ runExceptT $ runReaderT p env
+  err a
+  runReaderT (setConfig s) sit
 
 err :: Either String String -> IO ()
 err (Left l) = putStrLn l >> exitFailure
