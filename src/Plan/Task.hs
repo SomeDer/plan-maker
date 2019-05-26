@@ -5,8 +5,8 @@ module Plan.Task where
 import Control.Lens
 import Data.Time
 import Data.Yaml
+import GHC.Generics
 import Plan.TimeRange
-import RIO
 
 data Task = Task
   { taskScheduled :: Maybe TimeRange

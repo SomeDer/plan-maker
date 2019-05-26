@@ -1,6 +1,11 @@
+{-# LANGUAGE NoMonomorphismRestriction #-}
+
 module Main where
 
 import Control.Monad
+import Control.Monad.Except
+import Control.Monad.Reader
+import Control.Monad.State
 import Data.Time
 import Options.Applicative
 import Plan.Env
@@ -8,16 +13,19 @@ import Plan.Event
 import Plan.Functions
 import Plan.Plan
 import Plan.Task
-import Prelude (putStrLn)
-import RIO
 import System.Directory
 import System.Environment
+import System.Exit
 
 nameOpt :: Parser String
 nameOpt = strOption (long "name" <> short 'n')
 
 idOpt :: Parser Int
-idOpt = option auto (long "id" <> short 'i' <> help "Task/event ID. This is shown to the left of its scheduled time.")
+idOpt =
+  option
+    auto
+    (long "id" <> short 'i' <>
+     help "Task/event ID. This is shown to the left of its scheduled time.")
 
 taskOpts :: Parser OptTask
 taskOpts =
@@ -45,14 +53,20 @@ eventOpts =
   strOption
     (long "end" <> short 'e' <> help "Time when the event ends. Format: hh:mm")
 
-opts :: Parser (RIO Env ())
+opts ::
+     (MonadReader Env m, MonadState Config m, MonadError String m)
+  => Parser (m String)
 opts =
   hsubparser $
-  command "task" (info (addTask Nothing <$> taskOpts) (progDesc "Add a new task")) <>
+  command
+    "task"
+    (info (addTask Nothing <$> taskOpts) (progDesc "Add a new task")) <>
   command "event" (info (addEvent <$> eventOpts) (progDesc "Add a new event")) <>
   command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
   command "rm" (info (removeItem <$> idOpt) (progDesc "Remove task")) <>
-  command "start" (info (startWork <$> idOpt) (progDesc "Start working on a task")) <>
+  command
+    "start"
+    (info (startWork <$> idOpt) (progDesc "Start working on a task")) <>
   command "stop" (info (stopWork <$> idOpt) (progDesc "Stop working on a task"))
 
 main :: IO ()
@@ -61,7 +75,7 @@ main = do
   home <- getHomeDirectory
   let save = home <> "/.plan.yaml"
       sit = Situation save t
-  Config ts <- runRIO sit getConfig
+  c@(Config ts) <- runReaderT getConfig sit
   let env = Env (Config ts) sit
   args <- getArgs
   case args of
@@ -74,5 +88,17 @@ main = do
           "Run plan task --help or plan event --help to see how to add them."
         exitFailure
   if null args
-    then runRIO env printPlan
-    else runRIO env =<< execParser (info (opts <**> helper) idm)
+    then do
+      (a, s) <- flip runStateT c $ runExceptT $ runReaderT printPlan env
+      err a
+      runReaderT (setConfig s) sit
+    else do
+      (a, s) <-
+        do p <- execParser (info (opts <**> helper) idm)
+           flip runStateT c $ runExceptT $ runReaderT p env
+      err a
+      runReaderT (setConfig s) sit
+
+err :: Either String String -> IO ()
+err (Left l) = putStrLn l >> exitFailure
+err (Right r) = putStrLn r

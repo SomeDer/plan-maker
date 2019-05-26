@@ -5,8 +5,8 @@ module Plan.Env where
 import Control.Lens
 import Data.Time
 import Data.Yaml
+import GHC.Generics
 import Plan.Task
-import RIO
 
 data Env = Env
   { envConfig :: Config

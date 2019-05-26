@@ -3,19 +3,20 @@
 module Plan.Plan where
 
 import Control.Lens
+import Control.Monad.Except
+import Control.Monad.Reader
+import Control.Monad.State
 import Data.List (sortOn)
 import Data.Maybe
-import Data.Set (elemAt, fromList, insert)
+import Data.Set (Set, elemAt, fromList, insert, toList)
 import Data.Time
 import Plan.Env
 import Plan.Functions
 import Plan.Task
 import Plan.TimeRange
-import Prelude (putStrLn)
-import RIO hiding ((^.), over, set, view)
 
 planDay ::
-     (MonadReader a m, HasTime a UTCTime, HasTasks a [Task]) => m (Set Task)
+     (MonadReader a m, HasTasks a [Task], HasTime a UTCTime) => m (Set Task)
 planDay = do
   env <- ask
   let UTCTime day t = env ^. time
@@ -71,23 +72,32 @@ planDay = do
       xs
 
 printPlan ::
-     ( MonadReader a m
-     , HasConfigLocation a String
-     , HasTime a UTCTime
+     ( MonadState Config m
+     , MonadError String m
+     , MonadReader a m
      , HasTasks a [Task]
-     , MonadIO m
+     , HasTime a UTCTime
      )
-  => m ()
+  => m String
 printPlan = do
   env <- ask
+  Config ts <- get
   d <- planDay
   let day = utctDay $ env ^. time
-      ts = env ^. tasks
       ts' = filter ((day >=) . view deadline) ts
-  unless (null ts') $ do
-    liftIO $ putStrLn "Some tasks were finished and are going to be removed."
-    mapM_  removeItem $ fmap (view identifier) ts'
   forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
     let f = take 5 . show
-     in unless (i == 0) $
-        liftIO $ putStrLn $ show i <> ") " <> f s <> "-" <> f e <> ": " <> n
+     in if i == 0
+          then return ""
+          else return $ show i <> ") " <> f s <> "-" <> f e <> ": " <> n
+  fmap (init . unlines . filter (/= "")) $
+    if null ts'
+      then forM (toList d) $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
+             let f = take 5 . show
+              in return $
+                 if i == 0
+                   then ""
+                   else show i <> ") " <> f s <> "-" <> f e <> ": " <> n
+      else do
+        a <- mapM removeItem $ fmap (view identifier) ts'
+        return $ "Some tasks were finished and are going to be removed." : a
