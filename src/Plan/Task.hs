@@ -14,6 +14,7 @@ data Task = Task
   , taskImportance :: Int
   , taskDeadline :: Day
   , taskName :: String
+  , taskRecur :: Bool
   , taskIdentifier :: Int
   , taskWorkedToday :: [TimeRange]
   , taskWorkingFrom :: Maybe TimeOfDay
@@ -24,7 +25,7 @@ instance ToJSON Task
 instance FromJSON Task
 
 instance Ord Task where
-  Task (Just (TimeRange s e)) _ _ _ _ _ _ _ <= Task (Just (TimeRange s' e')) _ _ _ _ _ _ _ =
+  Task (Just (TimeRange s e)) _ _ _ _ _ _ _ _ <= Task (Just (TimeRange s' e')) _ _ _ _ _ _ _ _ =
     if s == s'
       then e <= e'
       else s < s'
@@ -35,6 +36,7 @@ data OptTask = OptTask
   , optTaskImportance :: Int
   , optTaskDeadline :: Int
   , optTaskTimeNeeded :: Double
+  , opTaskRecur :: Bool
   } deriving (Show)
 
 makeFields ''Task

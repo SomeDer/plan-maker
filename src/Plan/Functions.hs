@@ -40,9 +40,10 @@ addTask' ::
   -> String
   -> Int
   -> a
+  -> Bool
   -> DiffTime
   -> m String
-addTask' s n i d t = do
+addTask' s n i d r t = do
   env <- ask
   c <- get
   taskId <- getID
@@ -53,6 +54,7 @@ addTask' s n i d t = do
           i
           (addDays (toInteger d) $ utctDay (env ^. time))
           n
+          r
           taskId
           []
           Nothing
@@ -71,8 +73,8 @@ addTask ::
   => Maybe TimeRange
   -> OptTask
   -> m String
-addTask s (OptTask n i d t) =
-  addTask' s n i d $ picosecondsToDiffTime (round $ t * 3600 * 10 ^ (12 :: Int))
+addTask s (OptTask n i d t r) =
+  addTask' s n i d r $ picosecondsToDiffTime (round $ t * 3600 * 10 ^ (12 :: Int))
 
 addEvent ::
      ( MonadReader a1 m
@@ -89,7 +91,7 @@ addEvent (OptEvent n d s e) = do
       e' = f e
   case liftM2 TimeRange (readMaybe s') (readMaybe e') of
     Just r -> do
-      _ <- addTask' (Just r) n maxBound d $ timeRangeSize r
+      _ <- addTask' (Just r) n maxBound d False $ timeRangeSize r
       return $ "Adding event " <> show n
     Nothing ->
       throwError "Input time in the format hh:mm. Examples: 07:58, 18:00."

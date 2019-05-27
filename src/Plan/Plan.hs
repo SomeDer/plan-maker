@@ -86,7 +86,7 @@ planDay = do
              in if need <= 0
                   then ts
                   else attemptInsert 0
-  let dummyTask n ti = Task (Just $ TimeRange ti ti) 0 0 day n 0 [] Nothing
+  let dummyTask n ti = Task (Just $ TimeRange ti ti) 0 0 day n False  0 [] Nothing
   return $
     foldr
       f
