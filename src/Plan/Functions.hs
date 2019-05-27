@@ -6,6 +6,7 @@ import Control.Lens
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Bool
 import Data.List
 import Data.Maybe
 import Data.Time
@@ -33,13 +34,12 @@ addTask' ::
      ( MonadReader a1 m
      , MonadState Config m
      , HasTasks a1 [Task]
-     , Integral a
      , HasTime a1 UTCTime
      )
   => Maybe TimeRange
   -> String
   -> Int
-  -> a
+  -> Int
   -> Bool
   -> DiffTime
   -> m String
@@ -52,9 +52,9 @@ addTask' s n i d r t = do
           s
           t
           i
-          (addDays (toInteger d) $ utctDay (env ^. time))
+          (addDays (toInteger d) $ utctDay $ env ^. time)
           n
-          r
+          (bool 0 (d + 1) r)
           taskId
           []
           Nothing
@@ -74,7 +74,8 @@ addTask ::
   -> OptTask
   -> m String
 addTask s (OptTask n i d t r) =
-  addTask' s n i d r $ picosecondsToDiffTime (round $ t * 3600 * 10 ^ (12 :: Int))
+  addTask' s n i d r $
+  picosecondsToDiffTime (round $ t * 3600 * 10 ^ (12 :: Int))
 
 addEvent ::
      ( MonadReader a1 m
@@ -91,7 +92,7 @@ addEvent (OptEvent n d s e) = do
       e' = f e
   case liftM2 TimeRange (readMaybe s') (readMaybe e') of
     Just r -> do
-      _ <- addTask' (Just r) n maxBound d False $ timeRangeSize r
+      _ <- addTask' (Just r) n maxBound (fromIntegral d) False $ timeRangeSize r
       return $ "Adding event " <> show n
     Nothing ->
       throwError "Input time in the format hh:mm. Examples: 07:58, 18:00."
@@ -161,7 +162,8 @@ removeItem i = do
   return $ "Removing " <> show (item ^. name)
 
 getConfig ::
-     (MonadReader a m, MonadIO m, HasConfigLocation a String, HasTime a UTCTime) => m Config
+     (MonadReader a m, MonadIO m, HasConfigLocation a String, HasTime a UTCTime)
+  => m Config
 getConfig = do
   env <- ask
   let f = env ^. configLocation

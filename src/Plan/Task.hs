@@ -14,7 +14,7 @@ data Task = Task
   , taskImportance :: Int
   , taskDeadline :: Day
   , taskName :: String
-  , taskRecur :: Bool
+  , taskRecur :: Int
   , taskIdentifier :: Int
   , taskWorkedToday :: [TimeRange]
   , taskWorkingFrom :: Maybe TimeOfDay
