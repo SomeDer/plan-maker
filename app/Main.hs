@@ -70,8 +70,15 @@ opts =
   hsubparser $
   command
     "task"
-    (info (addTask Nothing <$> taskOpts) (progDesc "Adds a task. A task can be done at any time when there isn't an event.")) <>
-  command "event" (info (addEvent <$> eventOpts) (progDesc "Add a new event. An event has to be done at a specific time.")) <>
+    (info
+       (addTask Nothing <$> taskOpts)
+       (progDesc
+          "Adds a task. A task can be done at any time when there isn't an event.")) <>
+  command
+    "event"
+    (info
+       (addEvent <$> eventOpts)
+       (progDesc "Add a new event. An event has to be done at a specific time.")) <>
   command "plan" (info (pure printPlan) (progDesc "Print the plan")) <>
   command "rm" (info (removeItem <$> idOpt) (progDesc "Remove task")) <>
   command
@@ -85,8 +92,8 @@ main = do
   home <- getHomeDirectory
   let save = home <> "/.plan.yaml"
       sit = Situation save t
-  c@(Config ts) <- runReaderT getConfig sit
-  let env = Env (Config ts) sit
+  c <- runReaderT getConfig sit
+  let env = Env c sit
   args <- getArgs
   (a, s) <-
     do p <-

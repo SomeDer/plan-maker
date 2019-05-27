@@ -44,7 +44,7 @@ addTask' ::
   -> m String
 addTask' s n i d t = do
   env <- ask
-  Config c <- get
+  c <- get
   taskId <- getID
   let new =
         Task
@@ -56,10 +56,10 @@ addTask' s n i d t = do
           taskId
           []
           Nothing
-  put $ Config $ new : c
+  put $ over tasks (new :) c
   return $
     if isNothing s
-      then "Adding task '" <> n <> "'"
+      then "Adding task " <> show n
       else ""
 
 addTask ::
@@ -90,18 +90,18 @@ addEvent (OptEvent n d s e) = do
   case liftM2 TimeRange (readMaybe s') (readMaybe e') of
     Just r -> do
       _ <- addTask' (Just r) n maxBound d $ timeRangeSize r
-      return $ "Adding event '" <> n <> "'"
+      return $ "Adding event " <> show n
     Nothing ->
       throwError "Input time in the format hh:mm. Examples: 07:58, 18:00."
 
 getIndex :: (MonadState Config m, MonadError String m) => Int -> m (Task, Int)
 getIndex i = do
-  Config c <- get
+  c <- get
   n <-
-    case findIndex ((== i) . view identifier) c of
+    case findIndex ((== i) . view identifier) $ c ^. tasks of
       Just x -> return x
       Nothing -> noSuchIndex i
-  return (c !! n, n)
+  return ((c ^. tasks) !! n, n)
 
 startWork ::
      ( MonadState Config m
@@ -116,11 +116,9 @@ startWork i = do
   c <- get
   (item, n) <- getIndex i
   put $
-    Config $
-    set
-      (ix n . workingFrom)
-      (Just $ timeToTimeOfDay $ utctDayTime $ env ^. time) $
-    c ^. tasks
+    flip (over tasks) c $
+    set (ix n . workingFrom) $
+    Just $ timeToTimeOfDay $ utctDayTime $ env ^. time
   if isJust $ item ^. workingFrom
     then throwError "Already working on this task"
     else if isJust $ item ^. scheduled
@@ -142,13 +140,12 @@ stopWork i = do
   case item ^. workingFrom of
     Just x -> do
       put $
-        Config $
-        set (ix n . workingFrom) Nothing $
+        flip (over tasks) c $
+        set (ix n . workingFrom) Nothing .
         over
           (ix n . workedToday)
-          (++ [TimeRange x (timeToTimeOfDay $ utctDayTime $ env ^. time)]) $
-        c ^. tasks
-      return $ "Stopping task '" <> item ^. name <> "'"
+          (++ [TimeRange x $ timeToTimeOfDay $ utctDayTime $ env ^. time])
+      return $ "Stopping task " <> show (item ^. name)
     Nothing -> throwError "You are not working on this"
 
 noSuchIndex :: (MonadError String m, Show a1) => a1 -> m a2
@@ -156,13 +153,13 @@ noSuchIndex i = throwError $ "There is no task/event with index " <> show i
 
 removeItem :: (MonadState Config m, MonadError String m) => Int -> m String
 removeItem i = do
-  Config c <- get
+  c <- get
   (item, _) <- getIndex i
-  put $ Config $ filter (/= item) c
-  return $ "Removing '" <> item ^. name <> "'"
+  put $ over tasks (filter (/= item)) c
+  return $ "Removing " <> show (item ^. name)
 
 getConfig ::
-     (MonadReader a m, MonadIO m, HasConfigLocation a String) => m Config
+     (MonadReader a m, MonadIO m, HasConfigLocation a String, HasTime a UTCTime) => m Config
 getConfig = do
   env <- ask
   let f = env ^. configLocation
@@ -173,7 +170,7 @@ getConfig = do
            case d of
              Left err -> putStrLn (prettyPrintParseException err) >> exitFailure
              Right x -> return x
-    else return $ Config []
+    else return $ Config [] $ utctDay $ env ^. time
 
 setConfig ::
      (MonadReader s m, MonadIO m, ToJSON a, HasConfigLocation s String)
