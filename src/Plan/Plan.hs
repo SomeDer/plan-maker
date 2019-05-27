@@ -38,11 +38,12 @@ timeWorked n t =
 
 timeNeededToday :: UTCTime -> Task -> Integer
 timeNeededToday (UTCTime day t) n =
-  subtract (diffTimeToPicoseconds $ timeWorked n t) $
-  diffTimeToPicoseconds (n ^. timeNeeded) &
-  div $
-  diffDays (n ^. deadline) day +
-  1
+  if daysLeft == 0
+    then 0
+    else flip div daysLeft $ subtract (diffTimeToPicoseconds $ timeWorked n t) $
+         diffTimeToPicoseconds $ n ^. timeNeeded
+  where
+    daysLeft = diffDays (n ^. deadline) day + 1
 
 planDay ::
      (MonadReader a m, HasTasks a [Task], HasTime a UTCTime) => m (Set Task)
