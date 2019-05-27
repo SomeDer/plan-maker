@@ -174,12 +174,39 @@ getConfig = do
            case d of
              Left err -> putStrLn (prettyPrintParseException err) >> exitFailure
              Right x -> return x
-    else return $ Config [] $ utctDay $ env ^. time
+    else do
+      setConfig $ Config [] $ utctDay $ env ^. time
+      liftIO $ do
+        putStrLn "When do you go to sleep (hh:mm, e.g. 23:00)?"
+        s <- getLine
+        putStrLn "When do you wake up?"
+        en <- getLine
+        let fn x y = runMonads $ addEvent $ OptEvent "Sleep" 0 x y
+        fn "00:00" en
+        fn s "23:59"
+      getConfig
 
 setConfig ::
-     (MonadReader s m, MonadIO m, ToJSON a, HasConfigLocation s String)
-  => a
+     (MonadReader s m, MonadIO m, HasConfigLocation s String)
+  => Config
   -> m ()
 setConfig c = do
   env <- ask
   liftIO $ encodeFile (env ^. configLocation) c
+
+runMonads :: ReaderT Env (ExceptT String (StateT Config IO)) String
+               -> IO ()
+runMonads f = do
+  t <- getCurrentTime
+  home <- getHomeDirectory
+  let save = home <> "/.plan.yaml"
+      sit = Situation save t
+  c <- runReaderT getConfig sit
+  let env = Env c sit
+  (a, s) <- flip runStateT c $ runExceptT $ runReaderT f env
+  msg a
+  runReaderT (setConfig s) sit
+
+msg :: Either String String -> IO ()
+msg (Left l) = putStrLn l >> exitFailure
+msg (Right r) = putStrLn r
