@@ -16,16 +16,33 @@ import Plan.Functions
 import Plan.Task
 import Plan.TimeRange
 
-timeNeededToday :: Task -> UTCTime -> Integer
-timeNeededToday n (UTCTime day t) =
-  let need =
-        n ^. timeNeeded & flip subtract $
-        sum $
-        fmap timeRangeSize $
-        mappend (n ^. workedToday) $
-        maybe [] ((: []) . flip TimeRange (timeToTimeOfDay t)) $
-        n ^. workingFrom
-   in diffTimeToPicoseconds need & div $ diffDays (n ^. deadline) day + 1
+displayTask :: Bool -> Task -> String
+displayTask b t =
+  if t ^. identifier == 0
+    then ""
+    else show (t ^. identifier) <> ") " <> ti <> t ^. name
+  where
+    g h = t ^?! scheduled . _Just . h
+    f = take 5 . show . g
+    ti =
+      if b
+        then f start <> "-" <> f end <> ": "
+        else ""
+
+timeWorked :: Task -> DiffTime -> DiffTime
+timeWorked n t =
+  sum $ fmap timeRangeSize $ mappend (n ^. workedToday) $
+  maybe [] ((: []) . flip TimeRange (timeToTimeOfDay t)) $
+  n ^.
+  workingFrom
+
+timeNeededToday :: UTCTime -> Task -> Integer
+timeNeededToday (UTCTime day t) n =
+  subtract (diffTimeToPicoseconds $ timeWorked n t) $
+  diffTimeToPicoseconds (n ^. timeNeeded) &
+  div $
+  diffDays (n ^. deadline) day +
+  1
 
 planDay ::
      (MonadReader a m, HasTasks a [Task], HasTime a UTCTime) => m (Set Task)
@@ -49,12 +66,11 @@ planDay = do
               flip insert ts $
               set (scheduled . _Just . start) (timeToTimeOfDay t) n
           Nothing ->
-            let need = timeNeededToday n (UTCTime day t)
+            let need = timeNeededToday (UTCTime day t) n
                 attemptInsert i
                   | i + 1 >= length ts = ts
                   | convert planEnd - convert planStart >= need =
-                    flip insert ts $
-                    set timeNeeded (picosecondsToDiffTime need) $
+                    flip insert ts $ set timeNeeded (picosecondsToDiffTime need) $
                     set scheduled (Just plannedTimeRange) n
                   | otherwise = attemptInsert (i + 1)
                   where
@@ -64,10 +80,12 @@ planDay = do
                     planStart = planPart end 0
                     planEnd = planPart start 1
                     plannedTimeRange =
-                      TimeRange planStart $
-                      timeToTimeOfDay $
-                      timeOfDayToTime planStart + picosecondsToDiffTime need
-             in attemptInsert 0
+                      TimeRange planStart $ timeToTimeOfDay $
+                      timeOfDayToTime planStart +
+                      picosecondsToDiffTime need
+             in if need <= 0
+                  then ts
+                  else attemptInsert 0
   let dummyTask n ti = Task (Just $ TimeRange ti ti) 0 0 day n 0 [] Nothing
   return $
     foldr
@@ -88,31 +106,33 @@ printPlan ::
   => m String
 printPlan = do
   env <- ask
-  Config ts <- get
+  c <- get
   d <- fmap toList planDay
-  let day = utctDay $ env ^. time
-      ts' =
-        flip filter ts $ \x ->
-          day > (x ^. deadline) || timeNeededToday x (env ^. time) <= 0
-  forM_ d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
-    let f = take 5 . show
-     in if i == 0
-          then return ""
-          else return $ show i <> ") " <> f s <> "-" <> f e <> ": " <> n
+  let UTCTime day t = env ^. time
+      toRemove =
+        flip filter (c ^. tasks) $ \x ->
+          day > (x ^. deadline) || x ^. timeNeeded <= 0
+      finished = filter ((<= 0) . timeNeededToday (UTCTime day t)) $ c ^. tasks
+      aboutFinished =
+        bool "Some tasks are finished for today:" "" (null finished) :
+        fmap (displayTask False) finished
+  put $
+    if c ^. todayIs == day
+      then c
+      else set todayIs day $ flip (over tasks) c $ fmap $ \task ->
+             over timeNeeded (subtract $ timeWorked task t) task
+  forM_ finished $ \x ->
+    if isJust $ x ^. workingFrom
+      then stopWork $ x ^. identifier
+      else return ""
   fmap (init' . unlines . filter (/= "")) $
-    if null ts'
+    if null toRemove
       then if length d <= 2
-             then throwError $
-                  "You don't have any tasks/events for today.\n" <>
+             then throwError $ "You don't have any tasks/events for today.\n" <>
                   "Run plan task --help or plan event --help to see how to add them."
-             else forM d $ \(Task (Just (TimeRange s e)) _ _ _ n i _ _) ->
-                    let f = take 5 . show
-                     in return $
-                        if i == 0
-                          then ""
-                          else show i <> ") " <> f s <> "-" <> f e <> ": " <> n
+             else return $ fmap (displayTask True) d <> aboutFinished
       else do
-        a <- mapM removeItem $ fmap (view identifier) ts'
+        a <- mapM removeItem $ fmap (view identifier) toRemove
         return $ "Some tasks were finished and are going to be removed." : a
 
 init' :: [a] -> [a]

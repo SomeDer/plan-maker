@@ -15,6 +15,7 @@ data Env = Env
 
 data Config = Config
   { configTasks :: [Task]
+  , configTodayIs :: Day
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Config
