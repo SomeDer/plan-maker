@@ -6,6 +6,7 @@ import Control.Lens
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Bool
 import Data.List
 import Data.Maybe
 import Data.Time
@@ -14,14 +15,13 @@ import Plan.Env
 import Plan.Event
 import Plan.Task
 import Plan.TimeRange
-import Prelude
 import System.Directory
 import System.Exit
 import Text.Read (readMaybe)
 
-getID :: (MonadReader a1 m, HasTasks a1 [Task]) => m Int
+getID :: (MonadState Config m) => m Int
 getID = do
-  env <- ask
+  env <- get
   let f = fmap (view identifier)
       ids = f (env ^. tasks)
   return $
@@ -33,16 +33,16 @@ addTask' ::
      ( MonadReader a1 m
      , MonadState Config m
      , HasTasks a1 [Task]
-     , Integral a
      , HasTime a1 UTCTime
      )
   => Maybe TimeRange
   -> String
   -> Int
-  -> a
+  -> Int
+  -> Bool
   -> DiffTime
   -> m String
-addTask' s n i d t = do
+addTask' s n i d r t = do
   env <- ask
   c <- get
   taskId <- getID
@@ -51,8 +51,9 @@ addTask' s n i d t = do
           s
           t
           i
-          (addDays (toInteger d) $ utctDay (env ^. time))
+          (addDays (toInteger d) $ utctDay $ env ^. time)
           n
+          (bool Nothing (Just (d, t)) r)
           taskId
           []
           Nothing
@@ -71,8 +72,9 @@ addTask ::
   => Maybe TimeRange
   -> OptTask
   -> m String
-addTask s (OptTask n i d t) =
-  addTask' s n i d $ picosecondsToDiffTime (round $ t * 3600 * 10 ^ (12 :: Int))
+addTask s (OptTask n i d t r) =
+  addTask' s n i d r $
+  picosecondsToDiffTime (round $ t * 3600 * 10 ^ (12 :: Int))
 
 addEvent ::
      ( MonadReader a1 m
@@ -83,13 +85,15 @@ addEvent ::
      )
   => OptEvent
   -> m String
-addEvent (OptEvent n d s e) = do
+addEvent (OptEvent n d s e r) = do
   let f = (<> ":00")
       s' = f s
       e' = f e
   case liftM2 TimeRange (readMaybe s') (readMaybe e') of
-    Just r -> do
-      _ <- addTask' (Just r) n maxBound d $ timeRangeSize r
+    Just range -> do
+      _ <-
+        addTask' (Just range) n maxBound (fromIntegral d) r $
+        timeRangeSize range
       return $ "Adding event " <> show n
     Nothing ->
       throwError "Input time in the format hh:mm. Examples: 07:58, 18:00."
@@ -159,7 +163,8 @@ removeItem i = do
   return $ "Removing " <> show (item ^. name)
 
 getConfig ::
-     (MonadReader a m, MonadIO m, HasConfigLocation a String, HasTime a UTCTime) => m Config
+     (MonadReader a m, MonadIO m, HasConfigLocation a String, HasTime a UTCTime)
+  => m Config
 getConfig = do
   env <- ask
   let f = env ^. configLocation
@@ -170,12 +175,36 @@ getConfig = do
            case d of
              Left err -> putStrLn (prettyPrintParseException err) >> exitFailure
              Right x -> return x
-    else return $ Config [] $ utctDay $ env ^. time
+    else do
+      setConfig $ Config [] $ utctDay $ env ^. time
+      liftIO $ do
+        putStrLn "When do you go to sleep (hh:mm, e.g. 23:00)?"
+        s <- getLine
+        putStrLn "When do you wake up?"
+        en <- getLine
+        let fn x y = runMonads $ addEvent $ OptEvent "Sleep" 0 x y True
+        fn "00:00" en
+        fn s "23:59"
+      getConfig
 
 setConfig ::
-     (MonadReader s m, MonadIO m, ToJSON a, HasConfigLocation s String)
-  => a
-  -> m ()
+     (MonadReader s m, MonadIO m, HasConfigLocation s String) => Config -> m ()
 setConfig c = do
   env <- ask
   liftIO $ encodeFile (env ^. configLocation) c
+
+runMonads :: ReaderT Env (ExceptT String (StateT Config IO)) String -> IO ()
+runMonads f = do
+  t <- getCurrentTime
+  home <- getHomeDirectory
+  let save = home <> "/.plan.yaml"
+      sit = Situation save t
+  c <- runReaderT getConfig sit
+  let env = Env c sit
+  (a, s) <- flip runStateT c $ runExceptT $ runReaderT f env
+  msg a
+  runReaderT (setConfig s) sit
+
+msg :: Either String String -> IO ()
+msg (Left l) = putStrLn l >> exitFailure
+msg (Right r) = putStrLn r

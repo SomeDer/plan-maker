@@ -17,7 +17,14 @@ import System.Directory
 import System.Exit
 
 nameOpt :: Parser String
-nameOpt = strOption (long "name" <> short 'n')
+nameOpt = strOption $ long "name" <> short 'n'
+
+recOpt :: Parser Bool
+recOpt =
+  switch $
+  long "recur" <> short 'r' <>
+  help
+    "If passed, this would make the task restart once the deadline is reached, with the new deadline being as far away as the old."
 
 idOpt :: Parser Int
 idOpt =
@@ -46,7 +53,11 @@ taskOpts =
     auto
     (long "time" <> short 't' <> value 1 <>
      help "Hours needed to complete the task. Default: 1." <>
-     metavar "HOURS")
+     metavar "HOURS") <*>
+  switch
+    (long "recur" <> short 'r' <>
+     help
+       "If passed, this would make the task restart once the deadline is reached, with the new deadline being as far away as the old.")
 
 eventOpts :: Parser OptEvent
 eventOpts =
@@ -61,7 +72,8 @@ eventOpts =
      metavar "TIME") <*>
   strOption
     (long "end" <> short 'e' <> help "Time when the event ends. Format: hh:mm" <>
-     metavar "TIME")
+     metavar "TIME") <*>
+  recOpt
 
 opts ::
      (MonadReader Env m, MonadState Config m, MonadError String m)
