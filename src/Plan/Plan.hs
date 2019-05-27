@@ -86,7 +86,8 @@ planDay = do
              in if need <= 0
                   then ts
                   else attemptInsert 0
-  let dummyTask n ti = Task (Just $ TimeRange ti ti) 0 0 day n 0 0 [] Nothing
+  let dummyTask n ti =
+        Task (Just $ TimeRange ti ti) 0 0 day n Nothing 0 [] Nothing
   return $
     foldr
       f
@@ -122,17 +123,14 @@ printPlan = do
       else set todayIs day $ flip (over tasks) c $ fmap $ \task ->
              over timeNeeded (subtract $ timeWorked task t) task
   forM_ finished $ \x -> do
-    _ <- if isJust $ x ^. workingFrom
-      then stopWork $ x ^. identifier
-      else return ""
-    if x ^. recur > 0
-      then addTask' Nothing
-             (x ^. name)
-             (x ^. importance)
-             (x ^. recur)
-             True
-             (x ^. timeNeeded)
-      else return ""
+    _ <-
+      if isJust $ x ^. workingFrom
+        then stopWork $ x ^. identifier
+        else return ""
+    case x ^. recur of
+      Nothing -> return ""
+      Just (dead, ti) ->
+        addTask' Nothing (x ^. name) (x ^. importance) dead True ti
   fmap (init' . unlines . filter (/= "")) $
     if null toRemove
       then if length d <= 2

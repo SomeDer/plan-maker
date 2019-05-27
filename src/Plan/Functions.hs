@@ -54,7 +54,7 @@ addTask' s n i d r t = do
           i
           (addDays (toInteger d) $ utctDay $ env ^. time)
           n
-          (bool 0 (d + 1) r)
+          (bool Nothing (Just (d + 1, t)) r)
           taskId
           []
           Nothing
