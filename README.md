@@ -26,7 +26,7 @@ You will need to make sure `~/.local/bin` is on your `PATH`.
 * An *event* is something that must be done at a certain time.
 
 ### First Invocation
-To print today's plan, run  `plan`. As you have no tasks defined, this will result in an error. The error message recommends to add a task or event.
+To print today's plan, run  `plan`. This will result in you being asked about when you sleep - please answer. This will create 2 recurring events to model your sleeping time.
 
 ### Adding Tasks
 * To add a task, run `plan task -n "task name"`. This will create a task that takes 1 hour and is due today.
@@ -41,6 +41,7 @@ To print today's plan, run  `plan`. As you have no tasks defined, this will resu
 ```
 * Instead of 10:00, you will see the time you ran this at. Run this 1 minute later, and each of the times should increase by 00:01. If you run this at 20:00 or later, then you will not see the last task, because there would not be enough time for it.
 * Notice that the "important" taks comes first despite being entered last. This is because it has the highest importance.
+* You can also add a recurring task. To do so, add an `-r` flag after it. This will result in the task being reset after its deadline is reached, with the same time until the next deadline (so the time between deadlines will always be your `-d` value).
 
 ### Adding Events
 * To add an event, run `plan event -n event -s 12:00 -e 13:00`. If your time is 10:00, then the output will be:
@@ -52,6 +53,7 @@ To print today's plan, run  `plan`. As you have no tasks defined, this will resu
 ```
 * However, if you are doing this after 13:00, then you will not see the event, as it should already be done. If you are doing this between 12:00 and 13:00, then you will see your time instead of the 12:00, as the event is in progress, so its startinig time is the current time.
 * You can add an event that will happen in 10 days by running `plan event -n future -s 12:00 -e 13:00 -d 10`. You will not see it after running `plan` today, but you will see it if you run `plan` in 10 days.
+* As with tasks, you can add an `-r` flag to events to make them recurring.
 
 ### Actions
 * The number on the left of the tasks and events is their index.
