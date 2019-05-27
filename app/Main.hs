@@ -5,6 +5,7 @@ module Main where
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
+import Data.Function
 import Data.Time
 import Options.Applicative
 import Plan.Env
@@ -13,7 +14,6 @@ import Plan.Functions
 import Plan.Plan
 import Plan.Task
 import System.Directory
-import System.Environment
 import System.Exit
 
 nameOpt :: Parser String
@@ -67,6 +67,7 @@ opts ::
      (MonadReader Env m, MonadState Config m, MonadError String m)
   => Parser (m String)
 opts =
+  pure printPlan & (<|>) $
   hsubparser $
   command
     "task"
@@ -94,12 +95,8 @@ main = do
       sit = Situation save t
   c <- runReaderT getConfig sit
   let env = Env c sit
-  args <- getArgs
   (a, s) <-
-    do p <-
-         if null args
-           then return printPlan
-           else execParser (info (opts <**> helper) idm)
+    do p <- execParser (info (opts <**> helper) idm)
        flip runStateT c $ runExceptT $ runReaderT p env
   err a
   runReaderT (setConfig s) sit
