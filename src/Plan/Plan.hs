@@ -12,6 +12,7 @@ import Data.Maybe
 import Data.Set (Set, elemAt, fromList, insert, toList)
 import Data.Time
 import Plan.Env
+import Plan.Event
 import Plan.Functions
 import Plan.Task
 import Plan.TimeRange
@@ -22,25 +23,26 @@ displayTask b t =
     then ""
     else show (t ^. identifier) <> ") " <> ti <> t ^. name
   where
-    g h = t ^?! scheduled . _Just . h
-    f = take 5 . show . g
+    (Just s, Just e) = getSchedule t
+    f = take 5 . show
     ti =
       if b
-        then f start <> "-" <> f end <> ": "
+        then f s <> "-" <> f e <> ": "
         else ""
 
 timeWorked :: Task -> DiffTime -> DiffTime
 timeWorked n t =
-  sum $ fmap timeRangeSize $ mappend (n ^. workedToday) $
-  maybe [] ((: []) . flip TimeRange (timeToTimeOfDay t)) $
-  n ^.
-  workingFrom
+  sum $
+  fmap timeRangeSize $
+  mappend (n ^. workedToday) $
+  maybe [] ((: []) . flip TimeRange (timeToTimeOfDay t)) $ n ^. workingFrom
 
 timeNeededToday :: UTCTime -> Task -> Integer
 timeNeededToday (UTCTime day t) n =
   if daysLeft == 0
     then 0
-    else flip div daysLeft $ subtract (diffTimeToPicoseconds $ timeWorked n t) $
+    else flip div daysLeft $
+         subtract (diffTimeToPicoseconds $ timeWorked n t) $
          diffTimeToPicoseconds $ n ^. timeNeeded
   where
     daysLeft = diffDays (n ^. deadline) day + 1
@@ -71,7 +73,8 @@ planDay = do
                 attemptInsert i
                   | i + 1 >= length ts = ts
                   | convert planEnd - convert planStart >= need =
-                    flip insert ts $ set timeNeeded (picosecondsToDiffTime need) $
+                    flip insert ts $
+                    set timeNeeded (picosecondsToDiffTime need) $
                     set scheduled (Just plannedTimeRange) n
                   | otherwise = attemptInsert (i + 1)
                   where
@@ -81,9 +84,9 @@ planDay = do
                     planStart = planPart end 0
                     planEnd = planPart start 1
                     plannedTimeRange =
-                      TimeRange planStart $ timeToTimeOfDay $
-                      timeOfDayToTime planStart +
-                      picosecondsToDiffTime need
+                      TimeRange planStart $
+                      timeToTimeOfDay $
+                      timeOfDayToTime planStart + picosecondsToDiffTime need
              in if need <= 0
                   then ts
                   else attemptInsert 0
@@ -121,21 +124,34 @@ printPlan = do
   put $
     if c ^. todayIs == day
       then c
-      else set todayIs day $ flip (over tasks) c $ fmap $ \task ->
-             over timeNeeded (subtract $ timeWorked task t) task
+      else set todayIs day $
+           flip (over tasks) c $
+           fmap $ \task -> over timeNeeded (subtract $ timeWorked task t) task
   forM_ finished $ \x -> do
     _ <-
       if isJust $ x ^. workingFrom
         then stopWork $ x ^. identifier
         else return ""
+    if isNothing $ x ^. scheduled
+      then case x ^. recur of
+             Nothing -> return ""
+             Just (dead, ti) ->
+               addTask' Nothing (x ^. name) (x ^. importance) dead True ti
+      else return ""
+  forM_ (filter (isJust . view scheduled) finished) $ \x ->
     case x ^. recur of
       Nothing -> return ""
-      Just (dead, ti) ->
-        addTask' Nothing (x ^. name) (x ^. importance) dead True ti
+      Just (days, _) ->
+        case getSchedule x of
+          (Just s, Just e) ->
+            addEvent $ OptEvent (x ^. name) (fromIntegral days) (f s) (f e) True
+          _ -> return ""
+        where f = take 5 . show
   fmap (init' . unlines . filter (/= "")) $
     if null toRemove
       then if length d <= 2
-             then throwError $ "You don't have any tasks/events for today.\n" <>
+             then throwError $
+                  "You don't have any tasks/events for today.\n" <>
                   "Run plan task --help or plan event --help to see how to add them."
              else return $ fmap (displayTask True) d <> aboutFinished
       else do

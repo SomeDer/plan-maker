@@ -15,14 +15,13 @@ import Plan.Env
 import Plan.Event
 import Plan.Task
 import Plan.TimeRange
-import Prelude
 import System.Directory
 import System.Exit
 import Text.Read (readMaybe)
 
-getID :: (MonadReader a1 m, HasTasks a1 [Task]) => m Int
+getID :: (MonadState Config m) => m Int
 getID = do
-  env <- ask
+  env <- get
   let f = fmap (view identifier)
       ids = f (env ^. tasks)
   return $
@@ -54,7 +53,7 @@ addTask' s n i d r t = do
           i
           (addDays (toInteger d) $ utctDay $ env ^. time)
           n
-          (bool Nothing (Just (d + 1, t)) r)
+          (bool Nothing (Just (d, t)) r)
           taskId
           []
           Nothing
@@ -86,13 +85,15 @@ addEvent ::
      )
   => OptEvent
   -> m String
-addEvent (OptEvent n d s e) = do
+addEvent (OptEvent n d s e r) = do
   let f = (<> ":00")
       s' = f s
       e' = f e
   case liftM2 TimeRange (readMaybe s') (readMaybe e') of
-    Just r -> do
-      _ <- addTask' (Just r) n maxBound (fromIntegral d) False $ timeRangeSize r
+    Just range -> do
+      _ <-
+        addTask' (Just range) n maxBound (fromIntegral d) r $
+        timeRangeSize range
       return $ "Adding event " <> show n
     Nothing ->
       throwError "Input time in the format hh:mm. Examples: 07:58, 18:00."
@@ -181,21 +182,18 @@ getConfig = do
         s <- getLine
         putStrLn "When do you wake up?"
         en <- getLine
-        let fn x y = runMonads $ addEvent $ OptEvent "Sleep" 0 x y
+        let fn x y = runMonads $ addEvent $ OptEvent "Sleep" 0 x y True
         fn "00:00" en
         fn s "23:59"
       getConfig
 
 setConfig ::
-     (MonadReader s m, MonadIO m, HasConfigLocation s String)
-  => Config
-  -> m ()
+     (MonadReader s m, MonadIO m, HasConfigLocation s String) => Config -> m ()
 setConfig c = do
   env <- ask
   liftIO $ encodeFile (env ^. configLocation) c
 
-runMonads :: ReaderT Env (ExceptT String (StateT Config IO)) String
-               -> IO ()
+runMonads :: ReaderT Env (ExceptT String (StateT Config IO)) String -> IO ()
 runMonads f = do
   t <- getCurrentTime
   home <- getHomeDirectory

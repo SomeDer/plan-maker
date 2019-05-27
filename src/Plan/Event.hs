@@ -11,6 +11,7 @@ data OptEvent = OptEvent
   , optEventDaysTil :: Integer
   , optEventStart :: String
   , optEventEnd :: String
+  , optEventRecur :: Bool
   } deriving (Show)
 
 makeFields ''OptEvent

@@ -42,3 +42,8 @@ data OptTask = OptTask
 makeFields ''Task
 
 makeFields ''OptTask
+
+getSchedule :: Task -> (Maybe TimeOfDay, Maybe TimeOfDay)
+getSchedule t = (f start, f end)
+  where
+    f h = t ^? scheduled . _Just . h
