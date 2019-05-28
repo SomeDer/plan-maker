@@ -7,11 +7,14 @@ assignees: ''
 
 ---
 
-**Possible solutions**
-<!--- Describe any solutions to the feature that you can think of -->
+**Description**
+<!--- Describe the feature that you want to be implemented -->
+
+**Possible implementations**
+<!--- Describe how you think this can be implemented -->
 
 **Possible alternatives**
 <!--- Describe any alternative features that will solve your problem -->
 
 **Additional context**
-<!--- Add any other context or screenshots about the feature request here -->
+<!--- Add any other context about the feature request here -->
