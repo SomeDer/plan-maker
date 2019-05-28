@@ -41,9 +41,8 @@ timeNeededToday :: UTCTime -> Task -> Integer
 timeNeededToday (UTCTime day t) n =
   if daysLeft == 0
     then 0
-    else flip div daysLeft $
-         subtract (diffTimeToPicoseconds $ timeWorked n t) $
-         diffTimeToPicoseconds $ n ^. timeNeeded
+    else subtract (diffTimeToPicoseconds $ timeWorked n t) $
+         flip div daysLeft $ diffTimeToPicoseconds $ n ^. timeNeeded
   where
     daysLeft = diffDays (n ^. deadline) day + 1
 

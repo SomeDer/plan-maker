@@ -6,7 +6,7 @@ This is a command line interface that automatically creates a day plan based on 
 ## Installation
 
 ### Releases
-You can download the program directly from https://github.com/SomeDer/plan-maker/releases.
+You can download the binaries directly from https://github.com/SomeDer/plan-maker/releases.
 
 ### Manual
 First you need to install [stack](https://docs.haskellstack.org/en/stable/README/) by running `curl -sSL https://get.haskellstack.org/ | sh`.  
