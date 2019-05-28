@@ -61,3 +61,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - plan-maker
+    - hspec
+    - hspec-discover
