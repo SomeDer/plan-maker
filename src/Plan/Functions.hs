@@ -30,11 +30,7 @@ getID = do
       else fromIntegral (maximum ids) + 1
 
 addTask' ::
-     ( MonadReader a1 m
-     , MonadState Config m
-     , HasTasks a1 [Task]
-     , HasTime a1 UTCTime
-     )
+     (MonadReader a1 m, MonadState Config m, HasTime a1 UTCTime)
   => Maybe TimeRange
   -> String
   -> Int
@@ -64,11 +60,7 @@ addTask' s n i d r t = do
       else ""
 
 addTask ::
-     ( MonadReader a1 m
-     , MonadState Config m
-     , HasTasks a1 [Task]
-     , HasTime a1 UTCTime
-     )
+     (MonadReader a1 m, MonadState Config m, HasTime a1 UTCTime)
   => Maybe TimeRange
   -> OptTask
   -> m String
@@ -79,7 +71,6 @@ addTask s (OptTask n i d t r) =
 addEvent ::
      ( MonadReader a1 m
      , MonadState Config m
-     , HasTasks a1 [Task]
      , HasTime a1 UTCTime
      , MonadError String m
      )
@@ -206,7 +197,10 @@ runMonads f = do
   runReaderT (setConfig s) sit
 
 runMonads' ::
-     ReaderT Env (ExceptT e (StateT Config IO)) a -> Config -> Env -> IO (Either e a, Config)
+     ReaderT Env (ExceptT String (StateT Config m)) String
+  -> Config
+  -> Env
+  -> m (Either String String, Config)
 runMonads' f c = flip runStateT c . runExceptT . runReaderT f
 
 msg :: Either String String -> IO ()
