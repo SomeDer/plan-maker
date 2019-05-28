@@ -130,7 +130,7 @@ printPlan = do
   forM_ finished $ \x -> do
     _ <-
       if isJust $ x ^. workingFrom
-        then stopWork $ x ^. identifier
+        then stopWork $ fromIntegral $ x ^. identifier
         else return ""
     if isNothing $ x ^. scheduled
       then case x ^. recur of
@@ -155,7 +155,7 @@ printPlan = do
                   "Run plan task --help or plan event --help to see how to add them."
              else return $ fmap (displayTask True) d <> aboutFinished
       else do
-        a <- mapM removeItem $ fmap (view identifier) toRemove
+        a <- mapM removeItem $ fmap (fromIntegral . view identifier) toRemove
         return $ "Some tasks were finished and are going to be removed." : a
 
 init' :: [a] -> [a]

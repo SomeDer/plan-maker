@@ -27,7 +27,7 @@ getID = do
   return $
     if null ids
       then 1
-      else maximum ids + 1
+      else fromIntegral (maximum ids) + 1
 
 addTask' ::
      ( MonadReader a1 m
@@ -54,7 +54,7 @@ addTask' s n i d r t = do
           (addDays (toInteger d) $ utctDay $ env ^. time)
           n
           (bool Nothing (Just (d, t)) r)
-          taskId
+          (fromIntegral taskId)
           []
           Nothing
   put $ over tasks (new :) c
@@ -102,7 +102,7 @@ getIndex :: (MonadState Config m, MonadError String m) => Int -> m (Task, Int)
 getIndex i = do
   c <- get
   n <-
-    case findIndex ((== i) . view identifier) $ c ^. tasks of
+    case findIndex ((== fromIntegral i) . view identifier) $ c ^. tasks of
       Just x -> return x
       Nothing -> noSuchIndex i
   return ((c ^. tasks) !! n, n)
@@ -201,9 +201,13 @@ runMonads f = do
       sit = Situation save t
   c <- runReaderT getConfig sit
   let env = Env c sit
-  (a, s) <- flip runStateT c $ runExceptT $ runReaderT f env
+  (a, s) <- runMonads' f c env
   msg a
   runReaderT (setConfig s) sit
+
+runMonads' ::
+     ReaderT Env (ExceptT e (StateT Config IO)) a -> Config -> Env -> IO (Either e a, Config)
+runMonads' f c = flip runStateT c . runExceptT . runReaderT f
 
 msg :: Either String String -> IO ()
 msg (Left l) = putStrLn l >> exitFailure

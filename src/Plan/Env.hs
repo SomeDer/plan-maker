@@ -11,7 +11,7 @@ import Plan.Task
 data Env = Env
   { envConfig :: Config
   , envSituation :: Situation
-  }
+  } deriving (Show)
 
 data Config = Config
   { configTasks :: [Task]
@@ -25,7 +25,7 @@ instance FromJSON Config
 data Situation = Situation
   { situationConfigLocation :: FilePath
   , situationTime :: UTCTime
-  }
+  } deriving (Show)
 
 makeFields ''Env
 
