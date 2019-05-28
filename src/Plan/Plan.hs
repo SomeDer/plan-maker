@@ -54,10 +54,11 @@ planDay = do
   let UTCTime day t = env ^. time
       ts' = env ^. tasks
       xs =
-        filter
-          (\x ->
-             (bool (==) (<=) $ isNothing $ x ^. scheduled) day $ x ^. deadline) $
-        sortOn (view importance) ts'
+        sortOn (view importance) ts' & flip filter $ \x ->
+          case x ^. scheduled of
+            Nothing -> day <= x ^. deadline
+            Just (TimeRange _ e) ->
+              day == x ^. deadline && timeOfDayToTime e >= t
       f n ts =
         case n ^. scheduled of
           Just e
