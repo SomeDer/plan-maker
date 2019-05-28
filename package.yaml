@@ -59,7 +59,10 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -fno-warn-orphans
     dependencies:
     - plan-maker
     - hspec
     - hspec-discover
+    - QuickCheck
+    - quickcheck-instances
