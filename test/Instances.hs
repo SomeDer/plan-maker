@@ -1,6 +1,7 @@
 module Instances where
 
 import Control.Applicative
+import Control.Lens.Getter
 import Control.Monad
 import Plan.Env
 import Plan.Functions
@@ -38,8 +39,19 @@ instance Arbitrary Config where
         f ts = do
           opt <- arbitrary
           s <- arbitrary
-          (_, Config ts' _) <-
-            runMonads' (addTask s opt) (conf ts) (env ts)
+          (_, Config ts' _) <- runMonads' (addTask s opt) (conf ts) (env ts)
           frequency [(1, return ts'), (10, f ts')]
     ts <- f []
     return $ Config ts d
+
+data WithIndex = WithIndex
+  { ident :: Int
+  , configuration :: Config
+  } deriving (Eq, Show)
+
+instance Arbitrary WithIndex where
+  arbitrary = do
+    c <- arbitrary
+    let l = length $ c ^. tasks
+    i <- elements [1 .. l]
+    return $ WithIndex i c
