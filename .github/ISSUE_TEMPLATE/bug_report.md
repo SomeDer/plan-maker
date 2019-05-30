@@ -7,18 +7,17 @@ assignees: ''
 
 ---
 
+<!--- Steps to reproduce the behavior: -->
 **To reproduce**
 
-<!--- Steps to reproduce the behavior: -->
+<!--- A description of what you expected to happen. -->
 **Expected behavior**
 
-<!--- A description of what you expected to happen. -->
+<!--- A description of what actually happened. -->
 **Actual behavior**
 
-<!--- A description of what actually happened. -->
+<!--- Any potential ways to fix this that you can think of -->
 **Possible fixes**
 
-<!--- Any potential ways to fix this that you can think of -->
-**Additional context**
-
 <!--- Add any other context about the problem here. -->
+**Additional context**

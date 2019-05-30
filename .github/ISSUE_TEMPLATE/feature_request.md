@@ -7,15 +7,14 @@ assignees: ''
 
 ---
 
+<!--- Describe the feature that you want to be implemented -->
 **Description**
 
-<!--- Describe the feature that you want to be implemented -->
+<!--- Describe how you think this can be implemented -->
 **Possible implementations**
 
-<!--- Describe how you think this can be implemented -->
+<!--- Describe any alternative features that will solve your problem -->
 **Possible alternatives**
 
-<!--- Describe any alternative features that will solve your problem -->
-
-**Additional context**
 <!--- Add any other context about the feature request here -->
+**Additional context**
