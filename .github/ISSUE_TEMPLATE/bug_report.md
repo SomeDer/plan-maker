@@ -16,6 +16,9 @@ assignees: ''
 **Actual behavior**
 
 <!--- A description of what actually happened. -->
+**Possible fixes**
+
+<!--- Any potential ways to fix this that you can think of -->
 **Additional context**
 
 <!--- Add any other context about the problem here. -->
