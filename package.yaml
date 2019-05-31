@@ -66,3 +66,4 @@ tests:
     - hspec-discover
     - QuickCheck
     - quickcheck-instances
+    - regex-tdfa
