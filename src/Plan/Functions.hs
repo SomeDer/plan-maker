@@ -54,10 +54,7 @@ addTask' s n i d r t = do
           []
           Nothing
   put $ over tasks (new :) c
-  return $
-    if isNothing s
-      then "Adding task " <> show n
-      else ""
+  return $ "Adding task " <> show n
 
 addTask ::
      (MonadReader a1 m, MonadState Config m, HasTime a1 UTCTime)
@@ -80,12 +77,16 @@ addEvent (OptEvent n d s e r) = do
   let f = (<> ":00")
       s' = f s
       e' = f e
+      g (TimeOfDay h m sec) = isJust $ makeTimeOfDayValid h m sec
   case liftM2 TimeRange (readMaybe s') (readMaybe e') of
-    Just range -> do
+    Just range@(TimeRange st en) -> do
       _ <-
         addTask' (Just range) n maxBound (fromIntegral d) r $
         timeRangeSize range
-      return $ "Adding event " <> show n
+      if g st && g en
+        then return $ "Adding event " <> show n
+        else throwError
+               "The range for hours is 0 - 23 and the range for minutes is 0 to 59"
     Nothing ->
       throwError "Input time in the format hh:mm. Examples: 07:58, 18:00."
 
