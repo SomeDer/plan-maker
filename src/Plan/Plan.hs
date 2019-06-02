@@ -7,7 +7,7 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Bool
-import Data.List (nub, sortOn)
+import Data.List (sortOn)
 import Data.Maybe
 import Data.Set (Set, elemAt, fromList, insert, toList)
 import Data.Time
@@ -114,13 +114,10 @@ printPlan = do
   c <- get
   d <- fmap toList planDay
   let UTCTime day t = env ^. time
+      finished = filter ((<= 0) . timeNeededToday (UTCTime day t)) $ c ^. tasks
       toRemove =
         flip filter (c ^. tasks) $ \x ->
           day > (x ^. deadline) || x ^. timeNeeded <= 0
-      finished =
-        nub $
-        mappend toRemove $
-        filter ((<= 0) . timeNeededToday (UTCTime day t)) $ c ^. tasks
       aboutFinished =
         bool "Some tasks are finished for today:" "" (null finished) :
         fmap (displayTask False) finished
@@ -130,23 +127,18 @@ printPlan = do
       else set todayIs day $
            flip (over tasks) c $
            fmap $ \task -> over timeNeeded (subtract $ timeWorked task t) task
-  forM_ finished $ \x -> do
-    _ <- stopWork $ fromIntegral $ x ^. identifier
-    if isNothing $ x ^. scheduled
-      then case x ^. recur of
-             Nothing -> return ""
-             Just (dead, ti) ->
-               addTask' Nothing (x ^. name) (x ^. importance) dead True ti
-      else return ""
-  forM_ (filter (isJust . view scheduled) finished) $ \x ->
+  forM_ finished $ \x ->
+    flip catchError (const $ return "") $
+    stopWork $ fromIntegral $ x ^. identifier
+  forM_ toRemove $ \x ->
     case x ^. recur of
-      Nothing -> return ""
-      Just (days, _) ->
+      Just (dead, ti) ->
         case getSchedule x of
           (Just s, Just e) ->
-            addEvent $ OptEvent (x ^. name) (fromIntegral days) (f s) (f e) True
-          _ -> return ""
+            addEvent $ OptEvent (x ^. name) (fromIntegral dead) (f s) (f e) True
+          _ -> addTask' Nothing (x ^. name) (x ^. importance) dead True ti
         where f = take 5 . show
+      Nothing -> return ""
   fmap (init' . unlines . filter (/= "")) $
     if null toRemove
       then if length d <= 2
