@@ -38,8 +38,7 @@ instance Arbitrary Config where
         env ts = Env (conf ts) $ Situation "" t
         f ts = do
           opt <- arbitrary
-          s <- arbitrary
-          (_, Config ts' _) <- runMonads' (addTask s opt) (conf ts) (env ts)
+          (_, Config ts' _) <- runMonads' (addTask Nothing opt) (conf ts) (env ts)
           frequency [(1, return ts'), (10, f ts')]
     ts <- f []
     return $ Config ts d

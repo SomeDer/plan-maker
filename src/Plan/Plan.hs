@@ -7,7 +7,7 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Bool
-import Data.List (sortOn)
+import Data.List (nub, sortOn)
 import Data.Maybe
 import Data.Set (Set, elemAt, fromList, insert, toList)
 import Data.Time
@@ -117,7 +117,10 @@ printPlan = do
       toRemove =
         flip filter (c ^. tasks) $ \x ->
           day > (x ^. deadline) || x ^. timeNeeded <= 0
-      finished = filter ((<= 0) . timeNeededToday (UTCTime day t)) $ c ^. tasks
+      finished =
+        nub $
+        mappend toRemove $
+        filter ((<= 0) . timeNeededToday (UTCTime day t)) $ c ^. tasks
       aboutFinished =
         bool "Some tasks are finished for today:" "" (null finished) :
         fmap (displayTask False) finished
@@ -128,10 +131,7 @@ printPlan = do
            flip (over tasks) c $
            fmap $ \task -> over timeNeeded (subtract $ timeWorked task t) task
   forM_ finished $ \x -> do
-    _ <-
-      if isJust $ x ^. workingFrom
-        then stopWork $ fromIntegral $ x ^. identifier
-        else return ""
+    _ <- stopWork $ fromIntegral $ x ^. identifier
     if isNothing $ x ^. scheduled
       then case x ^. recur of
              Nothing -> return ""
