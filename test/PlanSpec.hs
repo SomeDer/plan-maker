@@ -51,3 +51,6 @@ spec =
         "1) 15:00-16:00: A\n\
         \1) 16:00-17:00: B\n\
         \1) 17:00-18:00: C"
+    it "gives 20 minutes for a 6 day, 2 hour task" $ do
+      (Right r, _) <- runMonads' printPlan con3 $ Env con3 baseSit
+      r `shouldBe` "1) 15:00-15:20: A"
