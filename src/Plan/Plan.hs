@@ -126,7 +126,10 @@ printPlan = do
       then c
       else set todayIs day $
            flip (over tasks) c $
-           fmap $ \task -> over timeNeeded (subtract $ timeWorked task t) task
+           fmap $ \task ->
+             set workingFrom Nothing $
+             set workedToday [] $
+             over timeNeeded (subtract $ timeWorked task t) task
   forM_ finished $ \x ->
     flip catchError (const $ return "") $
     stopWork $ fromIntegral $ x ^. identifier
