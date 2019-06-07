@@ -144,7 +144,7 @@ printPlan = do
       Nothing -> return ""
   fmap (init' . unlines . filter (/= "")) $
     if null toRemove
-      then if length d <= 2
+      then if null finished && length d <= 2
              then throwError $
                   "You don't have any tasks/events for today.\n" <>
                   "Run plan task --help or plan event --help to see how to add them."

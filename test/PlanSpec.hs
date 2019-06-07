@@ -54,3 +54,13 @@ spec =
     it "gives 20 minutes for a 6 day, 2 hour task" $ do
       (Right r, _) <- runMonads' printPlan con3 $ Env con3 baseSit
       r `shouldBe` "1) 15:00-15:20: A"
+    it "gives starting time as current time if currently working on task" $ do
+      (Right r, _) <-
+        runMonads' printPlan con4 $ Env con4 $ Situation ".plan.yaml" middleTime
+      r `shouldBe` "1) 13:30-14:00: A"
+    it "pritns that tasks are done" $ do
+      (Right r, _) <-
+        runMonads' printPlan con4 $ Env con4 baseSit
+      r `shouldBe`
+        "Some tasks are finished for today:\n\
+        \1) A"
