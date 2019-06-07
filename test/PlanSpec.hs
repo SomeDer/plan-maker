@@ -45,3 +45,9 @@ spec =
         "1) 15:00-16:00: C\n\
         \1) 16:00-17:00: B\n\
         \1) 17:00-18:00: A"
+    it "prints simple tasks in importance order" $ do
+      (Right r, _) <- runMonads' printPlan con2 $ Env con2 baseSit
+      r `shouldBe`
+        "1) 15:00-16:00: A\n\
+        \1) 16:00-17:00: B\n\
+        \1) 17:00-18:00: C"
