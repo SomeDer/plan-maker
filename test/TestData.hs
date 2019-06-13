@@ -47,3 +47,6 @@ con4 =
     [ set workingFrom (Just $ timeToTimeOfDay $ utctDayTime earlierTime) $
       simpleTask'' "A"
     ]
+
+con5 :: Config
+con5 = over tasks (simpleTask'' "B" :) con4

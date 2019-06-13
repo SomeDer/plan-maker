@@ -58,9 +58,16 @@ spec =
       (Right r, _) <-
         runMonads' printPlan con4 $ Env con4 $ Situation ".plan.yaml" middleTime
       r `shouldBe` "1) 13:30-14:00: A"
-    it "pritns that tasks are done" $ do
+    it "prints that tasks are done" $ do
       (Right r, _) <-
         runMonads' printPlan con4 $ Env con4 baseSit
       r `shouldBe`
         "Some tasks are finished for today:\n\
+        \1) A"
+    it "prints both tasks that are done and not done" $ do
+      (Right r, _) <-
+        runMonads' printPlan con5 $ Env con5 baseSit
+      r `shouldBe`
+        "1) 15:00-16:00: B\n\
+        \Some tasks are finished for today:\n\
         \1) A"
