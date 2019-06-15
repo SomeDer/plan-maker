@@ -39,3 +39,12 @@ install:
 script:
 # Build the package, its tests, and its docs and run the tests
 - stack --no-terminal test --haddock --no-haddock-deps
+
+deploy:
+  provider: releases
+  api_key:
+    secure: c8q+8VfR7vFaSwBya8qxPNxzRXh++gxCbQMNmeQ/UCcaCcoBTektUM/pEcyRT7QH38K6ifPdiyltpga7DsFGMO9pfuEOtI0ASPQKm4icrsTIFYDX+OAdsKT1McQ0fHcxUf1ZiJmJ/yoxISqUNn2nDIckVXCIzqXERckTCNY5D4m8wkeofeK2L0nYo3Oj2lIWWG9JTTE6D3mpistTP1viwDVe+sVx0XeGGmzDfNuFuHQ3QMNCI7bkTagr3fCQ/ncXJIP02D2h0yRCOPq18F2+YK3yD04OOmmFpyGlwApfhaYPnZnBoBelmZvYT0R6lNBYnIs8SE3LpxBHJiyV+9YytzydtJsHqspAbwBYGCPuF4NkqoBePBpBsPi6eLAF4qPQSc4zUPns/JOSQgQ3E3MY02AajZo4G12i+G/cKKkQjuXR5yuNpkuyGRtDBohs6FnoIy9TkpDOrH3hKERJ3esiORltxvy0tbm8G76HtSw53MalJeB3aZeY5rzW91K+yrEi8QlbMM3y2TnwKJem3XuhunBjJzWl31Kuv9hcnqiyq0DyEB28UzOy7WoCBQJHNwppgEL3F3Pbw4COZrjkBVuQkNb6rtdUd8HYgfIr1FkH5FtykFvfQjbHLywuM/YUDt7H5jNK6dsR0UaatbUms2/lp0I7gT29vDFPKyfM0TeuTMs=
+  file: ".stack-work/install/x86_64-linux/lts-13.25/8.6.5/bin/plan"
+  skip_cleanup: true
+  on:
+    tags: true
