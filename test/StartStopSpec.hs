@@ -9,6 +9,7 @@ import Instances ()
 import Plan.Env
 import Plan.Functions
 import Plan.Task
+import Plan.TimeRange
 import Test.Hspec
 import Test.QuickCheck
 
@@ -37,3 +38,25 @@ spec = do
           shouldSatisfy c $ \x ->
             null (x ^. tasks) ||
             isJust (taskWithId1 (x ^. tasks) ^. workingFrom)
+  describe "Stopping tasks" $ do
+    it "fails if workingFrom doesn't exist" $
+      property $ \(c, s) -> do
+        (e, _) <- runMonads' (stopWork 1) c $ Env c s
+        when
+          (null (c ^. tasks) & (||) $
+           isNothing $ taskWithId1 (c ^. tasks) ^. workingFrom) $
+          e `shouldSatisfy` isLeft
+    it "succeeds if task was started before" $
+      property $ \(c, s) -> do
+        (_, c') <- runMonads' (startWork 1) c $ Env c s
+        (e, _) <- runMonads' (stopWork 1) c' $ Env c' s
+        unless (null $ c ^. tasks) $ e `shouldSatisfy` isRight
+    it "records start as workingFrom and end as current time" $
+      property $ \(c, s) -> do
+        (_, c') <- runMonads' (startWork 1) c $ Env c s
+        (e, c'') <- runMonads' (stopWork 1) c' $ Env c' s
+        when (isRight e) $
+          last (taskWithId1 (c'' ^. tasks) ^. workedToday) `shouldBe`
+          TimeRange
+            (fromJust $ taskWithId1 (c' ^. tasks) ^. workingFrom)
+            (timeToTimeOfDay $ utctDayTime $ s ^. time)
