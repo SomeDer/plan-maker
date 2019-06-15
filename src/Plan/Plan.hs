@@ -46,13 +46,9 @@ timeNeededToday (UTCTime day t) n =
   where
     daysLeft = diffDays (n ^. deadline) day + 1
 
-planDay ::
-     (MonadReader a m, HasTasks a [Task], HasTime a UTCTime) => m (Set Task)
-planDay = do
-  env <- ask
-  let UTCTime day t = env ^. time
-      ts' = env ^. tasks
-      xs =
+planDay :: UTCTime -> [Task] -> Set Task
+planDay (UTCTime day t) ts' =
+  let xs =
         sortOn (view importance) ts' & flip filter $ \x ->
           case x ^. scheduled of
             Nothing -> day <= x ^. deadline
@@ -90,34 +86,31 @@ planDay = do
              in if need <= 0
                   then ts
                   else attemptInsert 0
-  let dummyTask n ti =
+      dummyTask n ti =
         Task (Just $ TimeRange ti ti) 0 0 day n Nothing 0 [] Nothing
-  return $
-    foldr
-      f
-      (fromList
-         [ dummyTask "Now" $ timeToTimeOfDay t
-         , dummyTask "Midnight" $ TimeOfDay 23 59 59
-         ])
-      xs
+   in foldr
+        f
+        (fromList
+           [ dummyTask "Now" $ timeToTimeOfDay t
+           , dummyTask "Midnight" $ TimeOfDay 23 59 59
+           ])
+        xs
 
 printPlan ::
-     ( MonadState Config m
-     , MonadError String m
+     ( MonadError String m
+     , MonadState Config m
      , MonadReader a m
-     , HasTasks a [Task]
      , HasTime a UTCTime
      )
   => m String
 printPlan = do
   env <- ask
   c <- get
-  d <- fmap toList planDay
   let UTCTime day t = env ^. time
+      finished = filter ((<= 0) . timeNeededToday (UTCTime day t)) $ c ^. tasks
       toRemove =
         flip filter (c ^. tasks) $ \x ->
           day > (x ^. deadline) || x ^. timeNeeded <= 0
-      finished = filter ((<= 0) . timeNeededToday (UTCTime day t)) $ c ^. tasks
       aboutFinished =
         bool "Some tasks are finished for today:" "" (null finished) :
         fmap (displayTask False) finished
@@ -130,35 +123,29 @@ printPlan = do
              set workingFrom Nothing $
              set workedToday [] $
              over timeNeeded (subtract $ timeWorked task t) task
-  forM_ finished $ \x -> do
-    _ <-
-      if isJust $ x ^. workingFrom
-        then stopWork $ x ^. identifier
-        else return ""
-    if isNothing $ x ^. scheduled
-      then case x ^. recur of
-             Nothing -> return ""
-             Just (dead, ti) ->
-               addTask' Nothing (x ^. name) (x ^. importance) dead True ti
-      else return ""
-  forM_ (filter (isJust . view scheduled) finished) $ \x ->
+  forM_ finished $ \x ->
+    flip catchError (const $ return "") $
+    stopWork $ fromIntegral $ x ^. identifier
+  forM_ toRemove $ \x ->
     case x ^. recur of
-      Nothing -> return ""
-      Just (days, _) ->
+      Just (dead, ti) ->
         case getSchedule x of
           (Just s, Just e) ->
-            addEvent $ OptEvent (x ^. name) (fromIntegral days) (f s) (f e) True
-          _ -> return ""
+            addEvent $ OptEvent (x ^. name) (fromIntegral dead) (f s) (f e) True
+          _ -> addTask' Nothing (x ^. name) (x ^. importance) dead True ti
         where f = take 5 . show
+      Nothing -> return ""
+  c' <- get
+  let d = toList $ planDay (env ^. time) (c' ^. tasks)
   fmap (init' . unlines . filter (/= "")) $
     if null toRemove
-      then if length d <= 2
+      then if null finished && length d <= 2
              then throwError $
                   "You don't have any tasks/events for today.\n" <>
                   "Run plan task --help or plan event --help to see how to add them."
              else return $ fmap (displayTask True) d <> aboutFinished
       else do
-        a <- mapM removeItem $ fmap (view identifier) toRemove
+        a <- mapM removeItem $ fmap (fromIntegral . view identifier) toRemove
         return $ "Some tasks were finished and are going to be removed." : a
 
 init' :: [a] -> [a]

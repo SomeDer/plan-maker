@@ -15,7 +15,7 @@ data Task = Task
   , taskDeadline :: Day
   , taskName :: String
   , taskRecur :: Maybe (Int, DiffTime)
-  , taskIdentifier :: Int
+  , taskIdentifier :: Word
   , taskWorkedToday :: [TimeRange]
   , taskWorkingFrom :: Maybe TimeOfDay
   } deriving (Eq, Show, Generic)

@@ -27,14 +27,10 @@ getID = do
   return $
     if null ids
       then 1
-      else maximum ids + 1
+      else fromIntegral (maximum ids) + 1
 
 addTask' ::
-     ( MonadReader a1 m
-     , MonadState Config m
-     , HasTasks a1 [Task]
-     , HasTime a1 UTCTime
-     )
+     (MonadReader a1 m, MonadState Config m, HasTime a1 UTCTime)
   => Maybe TimeRange
   -> String
   -> Int
@@ -54,21 +50,14 @@ addTask' s n i d r t = do
           (addDays (toInteger d) $ utctDay $ env ^. time)
           n
           (bool Nothing (Just (d, t)) r)
-          taskId
+          (fromIntegral taskId)
           []
           Nothing
   put $ over tasks (new :) c
-  return $
-    if isNothing s
-      then "Adding task " <> show n
-      else ""
+  return $ "Adding task " <> show n
 
 addTask ::
-     ( MonadReader a1 m
-     , MonadState Config m
-     , HasTasks a1 [Task]
-     , HasTime a1 UTCTime
-     )
+     (MonadReader a1 m, MonadState Config m, HasTime a1 UTCTime)
   => Maybe TimeRange
   -> OptTask
   -> m String
@@ -79,7 +68,6 @@ addTask s (OptTask n i d t r) =
 addEvent ::
      ( MonadReader a1 m
      , MonadState Config m
-     , HasTasks a1 [Task]
      , HasTime a1 UTCTime
      , MonadError String m
      )
@@ -89,12 +77,16 @@ addEvent (OptEvent n d s e r) = do
   let f = (<> ":00")
       s' = f s
       e' = f e
+      g (TimeOfDay h m sec) = isJust $ makeTimeOfDayValid h m sec
   case liftM2 TimeRange (readMaybe s') (readMaybe e') of
-    Just range -> do
+    Just range@(TimeRange st en) -> do
       _ <-
         addTask' (Just range) n maxBound (fromIntegral d) r $
         timeRangeSize range
-      return $ "Adding event " <> show n
+      if g st && g en
+        then return $ "Adding event " <> show n
+        else throwError
+               "The range for hours is 0 - 23 and the range for minutes is 0 to 59"
     Nothing ->
       throwError "Input time in the format hh:mm. Examples: 07:58, 18:00."
 
@@ -102,7 +94,7 @@ getIndex :: (MonadState Config m, MonadError String m) => Int -> m (Task, Int)
 getIndex i = do
   c <- get
   n <-
-    case findIndex ((== i) . view identifier) $ c ^. tasks of
+    case findIndex ((== fromIntegral i) . view identifier) $ c ^. tasks of
       Just x -> return x
       Nothing -> noSuchIndex i
   return ((c ^. tasks) !! n, n)
@@ -201,9 +193,16 @@ runMonads f = do
       sit = Situation save t
   c <- runReaderT getConfig sit
   let env = Env c sit
-  (a, s) <- flip runStateT c $ runExceptT $ runReaderT f env
+  (a, s) <- runMonads' f c env
   msg a
   runReaderT (setConfig s) sit
+
+runMonads' ::
+     ReaderT Env (ExceptT String (StateT Config m)) String
+  -> Config
+  -> Env
+  -> m (Either String String, Config)
+runMonads' f c = flip runStateT c . runExceptT . runReaderT f
 
 msg :: Either String String -> IO ()
 msg (Left l) = putStrLn l >> exitFailure
