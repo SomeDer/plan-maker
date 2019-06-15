@@ -4,9 +4,13 @@ import Control.Lens
 import Data.Time
 import Plan.Env
 import Plan.Task
+import Plan.TimeRange
 
 hoursToDiffTime :: Integer -> DiffTime
 hoursToDiffTime h = picosecondsToDiffTime $ 3600 * 10 ^ (12 :: Int) * h
+
+daysLater :: UTCTime
+daysLater = read "2019-06-10 15:00:00"
 
 baseTime :: UTCTime
 baseTime = read "2019-06-07 15:00:00"
@@ -50,3 +54,7 @@ con4 =
 
 con5 :: Config
 con5 = over tasks (simpleTask'' "B" :) con4
+
+con6 :: Config
+con6 = flip (over tasks) con3 $ fmap $ set workedToday [TimeRange (f earlierTime) $ f middleTime]
+  where f = timeToTimeOfDay . utctDayTime

@@ -46,13 +46,9 @@ timeNeededToday (UTCTime day t) n =
   where
     daysLeft = diffDays (n ^. deadline) day + 1
 
-planDay ::
-     (MonadReader a m, HasTasks a [Task], HasTime a UTCTime) => m (Set Task)
-planDay = do
-  env <- ask
-  let UTCTime day t = env ^. time
-      ts' = env ^. tasks
-      xs =
+planDay :: UTCTime -> [Task] -> Set Task
+planDay (UTCTime day t) ts' =
+  let xs =
         sortOn (view importance) ts' & flip filter $ \x ->
           case x ^. scheduled of
             Nothing -> day <= x ^. deadline
@@ -90,29 +86,26 @@ planDay = do
              in if need <= 0
                   then ts
                   else attemptInsert 0
-  let dummyTask n ti =
+      dummyTask n ti =
         Task (Just $ TimeRange ti ti) 0 0 day n Nothing 0 [] Nothing
-  return $
-    foldr
-      f
-      (fromList
-         [ dummyTask "Now" $ timeToTimeOfDay t
-         , dummyTask "Midnight" $ TimeOfDay 23 59 59
-         ])
-      xs
+   in foldr
+        f
+        (fromList
+           [ dummyTask "Now" $ timeToTimeOfDay t
+           , dummyTask "Midnight" $ TimeOfDay 23 59 59
+           ])
+        xs
 
 printPlan ::
-     ( MonadState Config m
-     , MonadError String m
+     ( MonadError String m
+     , MonadState Config m
      , MonadReader a m
-     , HasTasks a [Task]
      , HasTime a UTCTime
      )
   => m String
 printPlan = do
   env <- ask
   c <- get
-  d <- fmap toList planDay
   let UTCTime day t = env ^. time
       finished = filter ((<= 0) . timeNeededToday (UTCTime day t)) $ c ^. tasks
       toRemove =
@@ -142,6 +135,8 @@ printPlan = do
           _ -> addTask' Nothing (x ^. name) (x ^. importance) dead True ti
         where f = take 5 . show
       Nothing -> return ""
+  c' <- get
+  let d = toList $ planDay (env ^. time) (c' ^. tasks)
   fmap (init' . unlines . filter (/= "")) $
     if null toRemove
       then if null finished && length d <= 2

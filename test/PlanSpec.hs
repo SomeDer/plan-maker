@@ -71,3 +71,7 @@ spec =
         "1) 15:00-16:00: B\n\
         \Some tasks are finished for today:\n\
         \1) A"
+    it "correctly updates for new days" $ do
+      (Right r, _) <-
+        runMonads' printPlan con6 $ Env con6 $ Situation ".plan.yaml" daysLater
+      r `shouldBe` "1) 15:00-15:30: A"
