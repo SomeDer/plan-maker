@@ -19,9 +19,11 @@ script:
 - stack --no-terminal test --haddock --no-haddock-deps
 deploy:
   provider: releases
+  skip_cleanup: true
   api_key:
     secure: B6uL3LFOwToapA4UMVqVLBBCCGp3VJllx7sokiQBHoLwEKpmiDyPDNtw4RUXDe/ukVDe4P1HpAVpcgjFDVMpNqeYtuCqcwtVMG8fVp9ZqMFmR2donrYne2S496aUL58LrkceN3H82wDkAfZw/reY0SVv9BfbcTXiXRrQDDKX/55DmdPfwvhphiR1PdzOHQ13jsO4o8HSgdndnZxiiRR+ZmbjOvNXqPevGAiJsbdq9SEmtKHfrk2ZOyotiVEwebM1ueW3Qt1oHTOhytf/m92oMIJF/mK5EGBKFSrvi77sd3iPYE7BSNypdRolnOnvRRgSU15SppH3la+0MysocbDB/SKe6vlbagO92wApuj/LgWIaA0As3EbyykX+G5FotVaZkJb3gkmwcORm0il0UUbrfhjdZ2zEon1PANW2psxrEl4CtNX4Rrhr0ScVxxVuMBjkgUrER0MWxI3PPWCfwPRjhG0bb0UE12mCIVqEpudQqDG/Ud7pSxzhKliRV0OJi5fFGkZfwt3K5J/avP/nnCSWVJaiy39aUeayhL1txwydWa/QeqosmGboxLYx63QUm+TaJcBZlNcvGNZ/BK3g6Ri0nVWGFkutb10PcYQIsoKdwXxLSimFwpoLDZ5nNFHWEgDDYZegKbCCmKZYbRxbjgyGly9B2cyS4kgbQ9gwuWBCul8=
   file: ".stack-work/install/x86_64-linux/lts-13.25/8.6.5/bin/plan"
   on:
     repo: SomeDer/plan-maker
     branch: ''
+    tags: false
