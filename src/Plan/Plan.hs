@@ -30,15 +30,15 @@ displayTask b t =
         then f s <> "-" <> f e <> ": "
         else ""
 
-timeWorked :: Task -> DiffTime -> DiffTime
+timeWorked :: Task -> TimeOfDay -> DiffTime
 timeWorked n t =
   sum $
   fmap timeRangeSize $
   mappend (n ^. workedToday) $
-  maybe [] ((: []) . flip TimeRange (timeToTimeOfDay t)) $ n ^. workingFrom
+  maybe [] ((: []) . flip TimeRange t) $ n ^. workingFrom
 
-timeNeededToday :: UTCTime -> Task -> Integer
-timeNeededToday (UTCTime day t) n =
+timeNeededToday :: LocalTime -> Task -> Integer
+timeNeededToday (LocalTime day t) n =
   if daysLeft == 0
     then 0
     else subtract (diffTimeToPicoseconds $ timeWorked n t) $
@@ -46,26 +46,26 @@ timeNeededToday (UTCTime day t) n =
   where
     daysLeft = diffDays (n ^. deadline) day + 1
 
-planDay :: UTCTime -> [Task] -> Set Task
-planDay (UTCTime day t) ts' =
+planDay :: LocalTime -> [Task] -> Set Task
+planDay (LocalTime day t) ts' =
   let xs =
         sortOn (view importance) ts' & flip filter $ \x ->
           case x ^. scheduled of
             Nothing -> day <= x ^. deadline
             Just (TimeRange _ e) ->
-              day == x ^. deadline && timeOfDayToTime e >= t
+              day == x ^. deadline && e >= t
       f n ts =
         case n ^. scheduled of
           Just e
-            | e ^. start >= timeToTimeOfDay t -> insert n ts
+            | e ^. start >= t -> insert n ts
             | n ^. deadline /= day -> ts
-            | e ^. end < timeToTimeOfDay t ->
+            | e ^. end < t ->
               flip insert ts $ set identifier 0 n
             | otherwise ->
               flip insert ts $
-              set (scheduled . _Just . start) (timeToTimeOfDay t) n
+              set (scheduled . _Just . start) t n
           Nothing ->
-            let need = timeNeededToday (UTCTime day t) n
+            let need = timeNeededToday (LocalTime day t) n
                 attemptInsert i
                   | i + 1 >= length ts = ts
                   | convert planEnd - convert planStart >= need =
@@ -91,7 +91,7 @@ planDay (UTCTime day t) ts' =
    in foldr
         f
         (fromList
-           [ dummyTask "Now" $ timeToTimeOfDay t
+           [ dummyTask "Now" t
            , dummyTask "Midnight" $ TimeOfDay 23 59 59
            ])
         xs
@@ -100,14 +100,14 @@ printPlan ::
      ( MonadError String m
      , MonadState Config m
      , MonadReader a m
-     , HasTime a UTCTime
+     , HasTime a LocalTime
      )
   => m String
 printPlan = do
   env <- ask
   c <- get
-  let UTCTime day t = env ^. time
-      finished = filter ((<= 0) . timeNeededToday (UTCTime day t)) $ c ^. tasks
+  let LocalTime day t = env ^. time
+      finished = filter ((<= 0) . timeNeededToday (LocalTime day t)) $ c ^. tasks
       toRemove =
         flip filter (c ^. tasks) $ \x ->
           day > (x ^. deadline) || x ^. timeNeeded <= 0

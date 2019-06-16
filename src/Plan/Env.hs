@@ -24,7 +24,7 @@ instance FromJSON Config
 
 data Situation = Situation
   { situationConfigLocation :: FilePath
-  , situationTime :: UTCTime
+  , situationTime :: LocalTime
   } deriving (Show)
 
 makeFields ''Env
@@ -36,7 +36,7 @@ makeFields ''Situation
 instance HasConfigLocation Env FilePath where
   configLocation = situation . configLocation
 
-instance HasTime Env UTCTime where
+instance HasTime Env LocalTime where
   time = situation . time
 
 instance HasTasks Env [Task] where

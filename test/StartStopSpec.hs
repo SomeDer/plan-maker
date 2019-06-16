@@ -29,7 +29,7 @@ spec = do
         (e, c') <- runMonads' (startWork 1) c $ Env c s
         if isRight e
           then taskWithId1 (c' ^. tasks) ^. workingFrom `shouldBe`
-               (Just $ timeToTimeOfDay $ utctDayTime $ s ^. time)
+               (Just $ localTimeOfDay $ s ^. time)
           else c `shouldBe` c'
     it "only fails for empty task lists and already started tasks" $
       property $ \(c, s) -> do
@@ -59,4 +59,4 @@ spec = do
           last (taskWithId1 (c'' ^. tasks) ^. workedToday) `shouldBe`
           TimeRange
             (fromJust $ taskWithId1 (c' ^. tasks) ^. workingFrom)
-            (timeToTimeOfDay $ utctDayTime $ s ^. time)
+            (localTimeOfDay $ s ^. time)

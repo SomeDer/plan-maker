@@ -1,20 +1,15 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
-
 module Main where
 
 import Control.Monad.Except
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Function
-import Data.Time
 import Options.Applicative
 import Plan.Env
 import Plan.Event
 import Plan.Functions
 import Plan.Plan
 import Plan.Task
-import System.Directory
-import System.Exit
 
 nameOpt :: Parser String
 nameOpt = strOption $ long "name" <> short 'n'
@@ -100,19 +95,4 @@ opts =
   command "stop" (info (stopWork <$> idOpt) (progDesc "Stop working on a task"))
 
 main :: IO ()
-main = do
-  t <- getCurrentTime
-  home <- getHomeDirectory
-  let save = home <> "/.plan.yaml"
-      sit = Situation save t
-  c <- runReaderT getConfig sit
-  let env = Env c sit
-  (a, s) <-
-    do p <- execParser (info (opts <**> helper) idm)
-       flip runStateT c $ runExceptT $ runReaderT p env
-  err a
-  runReaderT (setConfig s) sit
-
-err :: Either String String -> IO ()
-err (Left l) = putStrLn l >> exitFailure
-err (Right r) = putStrLn r
+main = execParser (info (opts <**> helper) idm) >>= runMonads
