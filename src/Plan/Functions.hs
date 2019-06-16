@@ -30,7 +30,7 @@ getID = do
       else fromIntegral (maximum ids) + 1
 
 addTask' ::
-     (MonadReader a1 m, MonadState Config m, HasTime a1 UTCTime)
+     (MonadReader a1 m, MonadState Config m, HasTime a1 LocalTime)
   => Maybe TimeRange
   -> String
   -> Int
@@ -47,7 +47,7 @@ addTask' s n i d r t = do
           s
           t
           i
-          (addDays (toInteger d) $ utctDay $ env ^. time)
+          (addDays (toInteger d) $ localDay $ env ^. time)
           n
           (bool Nothing (Just (d, t)) r)
           (fromIntegral taskId)
@@ -57,7 +57,7 @@ addTask' s n i d r t = do
   return $ "Adding task " <> show n
 
 addTask ::
-     (MonadReader a1 m, MonadState Config m, HasTime a1 UTCTime)
+     (MonadReader a1 m, MonadState Config m, HasTime a1 LocalTime)
   => Maybe TimeRange
   -> OptTask
   -> m String
@@ -68,7 +68,7 @@ addTask s (OptTask n i d t r) =
 addEvent ::
      ( MonadReader a1 m
      , MonadState Config m
-     , HasTime a1 UTCTime
+     , HasTime a1 LocalTime
      , MonadError String m
      )
   => OptEvent
@@ -103,7 +103,7 @@ startWork ::
      ( MonadState Config m
      , MonadReader s m
      , MonadError String m
-     , HasTime s UTCTime
+     , HasTime s LocalTime
      )
   => Int
   -> m String
@@ -114,7 +114,7 @@ startWork i = do
   put $
     flip (over tasks) c $
     set (ix n . workingFrom) $
-    Just $ timeToTimeOfDay $ utctDayTime $ env ^. time
+    Just $ localTimeOfDay $ env ^. time
   if isJust $ item ^. workingFrom
     then throwError "Already working on this task"
     else if isJust $ item ^. scheduled
@@ -125,7 +125,7 @@ stopWork ::
      ( MonadError String m
      , MonadReader s m
      , MonadState Config m
-     , HasTime s UTCTime
+     , HasTime s LocalTime
      )
   => Int
   -> m String
@@ -140,7 +140,7 @@ stopWork i = do
         set (ix n . workingFrom) Nothing .
         over
           (ix n . workedToday)
-          (++ [TimeRange x $ timeToTimeOfDay $ utctDayTime $ env ^. time])
+          (++ [TimeRange x $ localTimeOfDay $ env ^. time])
       return $ "Stopping task " <> show (item ^. name)
     Nothing -> throwError "You are not working on this"
 
@@ -155,7 +155,7 @@ removeItem i = do
   return $ "Removing " <> show (item ^. name)
 
 getConfig ::
-     (MonadReader a m, MonadIO m, HasConfigLocation a String, HasTime a UTCTime)
+     (MonadReader a m, MonadIO m, HasConfigLocation a String, HasTime a LocalTime)
   => m Config
 getConfig = do
   env <- ask
@@ -168,7 +168,7 @@ getConfig = do
              Left err -> putStrLn (prettyPrintParseException err) >> exitFailure
              Right x -> return x
     else do
-      setConfig $ Config [] $ utctDay $ env ^. time
+      setConfig $ Config [] $ localDay $ env ^. time
       liftIO $ do
         putStrLn "When do you go to sleep (hh:mm, e.g. 23:00)?"
         s <- getLine
@@ -187,7 +187,7 @@ setConfig c = do
 
 runMonads :: ReaderT Env (ExceptT String (StateT Config IO)) String -> IO ()
 runMonads f = do
-  t <- getCurrentTime
+  t <- fmap zonedTimeToLocalTime getZonedTime
   home <- getHomeDirectory
   let save = home <> "/.plan.yaml"
       sit = Situation save t

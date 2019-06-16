@@ -101,7 +101,7 @@ opts =
 
 main :: IO ()
 main = do
-  t <- getCurrentTime
+  t <- fmap zonedTimeToLocalTime getZonedTime
   home <- getHomeDirectory
   let save = home <> "/.plan.yaml"
       sit = Situation save t
