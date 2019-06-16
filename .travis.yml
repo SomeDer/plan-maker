@@ -26,4 +26,4 @@ deploy:
   on:
     repo: SomeDer/plan-maker
     branch: ''
-    tags: false
+    tags: true
