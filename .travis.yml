@@ -17,6 +17,7 @@ install:
 - stack --no-terminal --install-ghc test --only-dependencies
 script:
 - stack --no-terminal test --haddock --no-haddock-deps
+- stack exec -- which plan
 deploy:
   provider: releases
   skip_cleanup: true
