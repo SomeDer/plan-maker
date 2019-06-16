@@ -48,3 +48,4 @@ deploy:
   skip_cleanup: true
   on:
     tags: true
+    repo: SomeDer/plan-maker
