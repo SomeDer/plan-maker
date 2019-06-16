@@ -23,7 +23,7 @@ deploy:
   skip_cleanup: true
   api_key:
     secure: B/KQ97cQNm72LwbzoM0nEQx9pqdAqQ3gVyE281B4RRZXzH5O6fVfd7UqAg05Gm603DiRCsO12KzeVVxYMSPK+YAJvGY4nTPK82NGVGpfY5nr0hMn+GAd+b9B2wVW7ol4iG21AqrpcqXN1ROdKBdhjAFS9pbrRZxbrIY6QDBJ0t4XeFFUtMEQ6tSe3fsB3uKnkZyW0IT5WuOldPh2+jX6jXjeofkpURkN0SfEuBkb6M+2pjtKtx+h4uOS+4gXn4q8igHBjfXWOEUXQPUDpM0ovqGmH8ysVf7tsHvGA1rGIt8o9DtksAFpFSF/Pfj0quugYi5BxOFQb2bj5GauZrQQ1254e7mS6cuajbO4S+h3L14oQ9p1hdSRlkGlPQB3PUoWNPGl1rIPqSaSszsXDWKIl9WzOYHhh8BDWWmMbZCw4FvDFLQlllZ/B7OoKayUDMHotIoWKVmGhuBfl+GcOLJ3Hs5CnNulNgx+VKjItSF1jDW+a980UmS78RB7IIt+8cpYVQ+xflJzfhPI/0xy4SwTZE8n22NmAN3BdmRa4PE6NvlBGei8HpNdY/uCAmakQR6bNOzs8Gy6dFwaDyO/ymBTy2ZujJCFk324N50WsZt/lUzz9MRZnCGSDdY+g5wChBB78CMknTIEFpr9lrARyTmER/n6LOy1mrCSJANF/jpugB8=
-  file: ".stack-work/install/x86_64-linux/lts-13.25/8.6.5/bin/plan"
+  file: ".stack-work/install/x86_64-linux/*/8.6.5/bin/plan"
   on:
     repo: SomeDer/plan-maker
     branch: ''
