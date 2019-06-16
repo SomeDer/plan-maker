@@ -22,7 +22,6 @@ install:
 
 script:
 - stack --no-terminal test --haddock --no-haddock-deps
-- stack exec -- which plan
 
 before_deploy:
 - export TO_RELEASE=$(stack exec -- which plan)
