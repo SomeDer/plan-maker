@@ -1,51 +1,27 @@
-# This is the simple Travis configuration, which is intended for use
-# on applications which do not require cross-platform and
-# multiple-GHC-version support. For more information and other
-# options, see:
-#
-# https://docs.haskellstack.org/en/stable/travis_ci/
-#
-# Copy these contents into the root directory of your Github project in a file
-# named .travis.yml
-
-# Choose a build environment
 dist: disco
-
-# Do not choose a language; we provide our own build tools.
 language: generic
-
-# Caching so the next build will be fast too.
 cache:
   directories:
-  - $HOME/.stack
-  - $HOME/plan-maker/.stack-work
-  - $HOME/.local/bin
-
-# Ensure necessary system libraries are present
+  - "$HOME/.stack"
+  - "$HOME/plan-maker/.stack-work"
+  - "$HOME/.local/bin"
 addons:
   apt:
     packages:
-      - libgmp-dev
-
+    - libgmp-dev
 before_install:
-# Download and unpack the stack executable
 - export PATH=$HOME/.local/bin:$PATH
-- travis_retry curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-
+- travis_retry curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar
+  xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 install:
-# Build dependencies
 - stack --no-terminal --install-ghc test --only-dependencies
-
 script:
-# Build the package, its tests, and its docs and run the tests
 - stack --no-terminal test --haddock --no-haddock-deps
-
 deploy:
   provider: releases
   api_key:
-    secure: c8q+8VfR7vFaSwBya8qxPNxzRXh++gxCbQMNmeQ/UCcaCcoBTektUM/pEcyRT7QH38K6ifPdiyltpga7DsFGMO9pfuEOtI0ASPQKm4icrsTIFYDX+OAdsKT1McQ0fHcxUf1ZiJmJ/yoxISqUNn2nDIckVXCIzqXERckTCNY5D4m8wkeofeK2L0nYo3Oj2lIWWG9JTTE6D3mpistTP1viwDVe+sVx0XeGGmzDfNuFuHQ3QMNCI7bkTagr3fCQ/ncXJIP02D2h0yRCOPq18F2+YK3yD04OOmmFpyGlwApfhaYPnZnBoBelmZvYT0R6lNBYnIs8SE3LpxBHJiyV+9YytzydtJsHqspAbwBYGCPuF4NkqoBePBpBsPi6eLAF4qPQSc4zUPns/JOSQgQ3E3MY02AajZo4G12i+G/cKKkQjuXR5yuNpkuyGRtDBohs6FnoIy9TkpDOrH3hKERJ3esiORltxvy0tbm8G76HtSw53MalJeB3aZeY5rzW91K+yrEi8QlbMM3y2TnwKJem3XuhunBjJzWl31Kuv9hcnqiyq0DyEB28UzOy7WoCBQJHNwppgEL3F3Pbw4COZrjkBVuQkNb6rtdUd8HYgfIr1FkH5FtykFvfQjbHLywuM/YUDt7H5jNK6dsR0UaatbUms2/lp0I7gT29vDFPKyfM0TeuTMs=
+    secure: B6uL3LFOwToapA4UMVqVLBBCCGp3VJllx7sokiQBHoLwEKpmiDyPDNtw4RUXDe/ukVDe4P1HpAVpcgjFDVMpNqeYtuCqcwtVMG8fVp9ZqMFmR2donrYne2S496aUL58LrkceN3H82wDkAfZw/reY0SVv9BfbcTXiXRrQDDKX/55DmdPfwvhphiR1PdzOHQ13jsO4o8HSgdndnZxiiRR+ZmbjOvNXqPevGAiJsbdq9SEmtKHfrk2ZOyotiVEwebM1ueW3Qt1oHTOhytf/m92oMIJF/mK5EGBKFSrvi77sd3iPYE7BSNypdRolnOnvRRgSU15SppH3la+0MysocbDB/SKe6vlbagO92wApuj/LgWIaA0As3EbyykX+G5FotVaZkJb3gkmwcORm0il0UUbrfhjdZ2zEon1PANW2psxrEl4CtNX4Rrhr0ScVxxVuMBjkgUrER0MWxI3PPWCfwPRjhG0bb0UE12mCIVqEpudQqDG/Ud7pSxzhKliRV0OJi5fFGkZfwt3K5J/avP/nnCSWVJaiy39aUeayhL1txwydWa/QeqosmGboxLYx63QUm+TaJcBZlNcvGNZ/BK3g6Ri0nVWGFkutb10PcYQIsoKdwXxLSimFwpoLDZ5nNFHWEgDDYZegKbCCmKZYbRxbjgyGly9B2cyS4kgbQ9gwuWBCul8=
   file: ".stack-work/install/x86_64-linux/lts-13.25/8.6.5/bin/plan"
-  skip_cleanup: true
   on:
-    tags: true
     repo: SomeDer/plan-maker
+    branch: ''
