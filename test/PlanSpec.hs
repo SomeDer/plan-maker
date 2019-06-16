@@ -26,7 +26,7 @@ spec =
           length $
           filter
             (\x ->
-               utctDay (s ^. time) <= x ^. deadline && x ^. timeNeeded > 0 ||
+               localDay (s ^. time) <= x ^. deadline && x ^. timeNeeded > 0 ||
                isJust (x ^. recur)) $
           c ^. tasks
     it "only fails for empty task lists, unless there isn't enough time" $
@@ -36,7 +36,7 @@ spec =
           shouldBe 0 $
           length $
           flip filter (c' ^. tasks) $ \x ->
-            utctDayTime (s ^. time) +
+            timeOfDayToTime (localTimeOfDay (s ^. time)) +
             picosecondsToDiffTime (timeNeededToday (s ^. time) x) <=
             timeOfDayToTime (TimeOfDay 23 59 59)
     it "prints simple tasks consecutively" $ do
