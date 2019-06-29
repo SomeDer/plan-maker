@@ -16,5 +16,8 @@ assignees: ''
 <!--- Describe any alternative features that will solve your problem -->
 **Possible alternatives**
 
-<!--- Add any other context about the feature request here -->
-**Additional context**
+<!--- Issues that need to be solved to add this feature --> 
+**Prerequisites**
+
+<!--- Add any other detail about the feature request here -->
+**Additional detail**

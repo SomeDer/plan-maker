@@ -2,7 +2,7 @@
 name: Bug report
 about: Create a report of unexpected behavior
 title: ''
-labels: bug
+labels: bug, important
 assignees: ''
 
 ---
@@ -19,5 +19,5 @@ assignees: ''
 <!--- Any potential ways to fix this that you can think of -->
 **Possible fixes**
 
-<!--- Add any other context about the problem here. -->
-**Additional context**
+<!--- Add any other detail about the problem here. -->
+**Additional detail**
