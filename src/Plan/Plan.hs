@@ -3,7 +3,7 @@
 module Plan.Plan where
 
 import Control.Lens
-import Data.List (sortOn)
+import Data.List (sortOn, partition)
 import Data.Maybe
 import Data.Set (Set, elemAt, fromList, insert)
 import Data.Time
@@ -40,13 +40,9 @@ timeNeededToday (LocalTime day t) n =
     daysLeft = diffDays (n ^. deadline) day + 1
 
 planDay :: LocalTime -> [Task] -> Set Task
-planDay (LocalTime day t) ts' =
+planDay tim@(LocalTime day t) ts' =
   let xs =
-        sortOn (view importance) ts' & flip filter $ \x ->
-          case x ^. scheduled of
-            Nothing -> day <= x ^. deadline
-            Just (TimeRange _ e) ->
-              day == x ^. deadline && e >= t
+        sortOn (view importance) $ snd $ finishedUnfinished tim ts'
       f n ts =
         case n ^. scheduled of
           Just e
@@ -58,7 +54,7 @@ planDay (LocalTime day t) ts' =
               flip insert ts $
               set (scheduled . _Just . start) t n
           Nothing ->
-            let need = timeNeededToday (LocalTime day t) n
+            let need = timeNeededToday tim n
                 attemptInsert i
                   | i + 1 >= length ts = ts
                   | convert planEnd - convert planStart >= need =
@@ -91,3 +87,6 @@ planDay (LocalTime day t) ts' =
 init' :: [a] -> [a]
 init' [] = []
 init' xs = init xs
+
+finishedUnfinished :: LocalTime -> [Task] -> ([Task], [Task])
+finishedUnfinished t = partition $ (<= 0) . timeNeededToday t

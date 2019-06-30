@@ -200,9 +200,9 @@ printPlan ::
 printPlan = do
   env <- ask
   c <- get
-  let LocalTime day t = env ^. time
+  let tim@(LocalTime day t) = env ^. time
       finished =
-        filter ((<= 0) . timeNeededToday (LocalTime day t)) $ c ^. tasks
+        fst $ finishedUnfinished tim $ c ^. tasks
       toRemove =
         flip filter (c ^. tasks) $ \x ->
           day > (x ^. deadline) || x ^. timeNeeded <= 0
@@ -231,7 +231,7 @@ printPlan = do
         where f = take 5 . show
       Nothing -> return ""
   c' <- get
-  let d = toList $ planDay (env ^. time) (c' ^. tasks)
+  let d = toList $ planDay tim (c' ^. tasks)
   fmap (init' . unlines . filter (/= "")) $
     if null toRemove
       then if null finished && length d <= 2
