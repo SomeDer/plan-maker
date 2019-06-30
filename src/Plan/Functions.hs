@@ -9,10 +9,12 @@ import Control.Monad.State
 import Data.Bool
 import Data.List
 import Data.Maybe
+import Data.Set (toList)
 import Data.Time
 import Data.Yaml
 import Plan.Env
 import Plan.Event
+import Plan.Plan
 import Plan.Task
 import Plan.TimeRange
 import System.Directory
@@ -113,8 +115,7 @@ startWork i = do
   (item, n) <- getIndex i
   put $
     flip (over tasks) c $
-    set (ix n . workingFrom) $
-    Just $ localTimeOfDay $ env ^. time
+    set (ix n . workingFrom) $ Just $ localTimeOfDay $ env ^. time
   if isJust $ item ^. workingFrom
     then throwError "Already working on this task"
     else if isJust $ item ^. scheduled
@@ -155,7 +156,11 @@ removeItem i = do
   return $ "Removing " <> show (item ^. name)
 
 getConfig ::
-     (MonadReader a m, MonadIO m, HasConfigLocation a String, HasTime a LocalTime)
+     ( MonadReader a m
+     , MonadIO m
+     , HasConfigLocation a String
+     , HasTime a LocalTime
+     )
   => m Config
 getConfig = do
   env <- ask
@@ -184,6 +189,59 @@ setConfig ::
 setConfig c = do
   env <- ask
   liftIO $ encodeFile (env ^. configLocation) c
+
+printPlan ::
+     ( MonadError String m
+     , MonadState Config m
+     , MonadReader a m
+     , HasTime a LocalTime
+     )
+  => m String
+printPlan = do
+  env <- ask
+  c <- get
+  let LocalTime day t = env ^. time
+      finished =
+        filter ((<= 0) . timeNeededToday (LocalTime day t)) $ c ^. tasks
+      toRemove =
+        flip filter (c ^. tasks) $ \x ->
+          day > (x ^. deadline) || x ^. timeNeeded <= 0
+      aboutFinished =
+        bool "Some tasks are finished for today:" "" (null finished) :
+        fmap (displayTask False) finished
+  put $
+    if c ^. todayIs == day
+      then c
+      else set todayIs day $
+           flip (over tasks) c $
+           fmap $ \task ->
+             set workingFrom Nothing $
+             set workedToday [] $
+             over timeNeeded (subtract $ timeWorked task t) task
+  forM_ finished $ \x ->
+    flip catchError (const $ return "") $
+    stopWork $ fromIntegral $ x ^. identifier
+  forM_ toRemove $ \x ->
+    case x ^. recur of
+      Just (dead, ti) ->
+        case getSchedule x of
+          (Just s, Just e) ->
+            addEvent $ OptEvent (x ^. name) (fromIntegral dead) (f s) (f e) True
+          _ -> addTask' Nothing (x ^. name) (x ^. importance) dead True ti
+        where f = take 5 . show
+      Nothing -> return ""
+  c' <- get
+  let d = toList $ planDay (env ^. time) (c' ^. tasks)
+  fmap (init' . unlines . filter (/= "")) $
+    if null toRemove
+      then if null finished && length d <= 2
+             then throwError $
+                  "You don't have any tasks/events for today.\n" <>
+                  "Run plan task --help or plan event --help to see how to add them."
+             else return $ fmap (displayTask True) d <> aboutFinished
+      else do
+        a <- mapM removeItem $ fmap (fromIntegral . view identifier) toRemove
+        return $ "Some tasks were finished and are going to be removed." : a
 
 runMonads :: ReaderT Env (ExceptT String (StateT Config IO)) String -> IO ()
 runMonads f = do

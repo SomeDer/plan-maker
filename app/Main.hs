@@ -8,7 +8,6 @@ import Options.Applicative
 import Plan.Env
 import Plan.Event
 import Plan.Functions
-import Plan.Plan
 import Plan.Task
 
 nameOpt :: Parser String
