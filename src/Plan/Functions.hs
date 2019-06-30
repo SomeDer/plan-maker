@@ -259,7 +259,7 @@ printPlan = do
   let d = planDay tim (c' ^. tasks)
   fmap (init' . unlines . filter (/= "")) $
     if null toRemove
-      then if null finished && length d <= 2
+      then if null finished && length d <= 0
              then throwError $
                   "You don't have any tasks/events for today.\n" <>
                   "Run plan task --help or plan event --help to see how to add them."
