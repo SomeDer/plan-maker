@@ -3,7 +3,7 @@
 module Plan.Plan where
 
 import Control.Lens
-import Data.List (sortOn, partition)
+import Data.List (partition, sortOn)
 import Data.Maybe
 import Data.Set (elemAt, fromList, insert, toList)
 import Data.Time
@@ -41,18 +41,14 @@ timeNeededToday (LocalTime day t) n =
 
 planDay :: LocalTime -> [Task] -> [Task]
 planDay tim@(LocalTime day t) ts' =
-  let xs =
-        sortOn (view importance) $ snd $ finishedUnfinished tim ts'
+  let xs = sortOn (view importance) $ snd $ finishedUnfinished tim ts'
       f n ts =
         case n ^. scheduled of
           Just e
             | e ^. start >= t -> insert n ts
             | n ^. deadline /= day -> ts
-            | e ^. end < t ->
-              flip insert ts $ set identifier 0 n
-            | otherwise ->
-              flip insert ts $
-              set (scheduled . _Just . start) t n
+            | e ^. end < t -> flip insert ts $ set identifier 0 n
+            | otherwise -> flip insert ts $ set (scheduled . _Just . start) t n
           Nothing ->
             let need = timeNeededToday tim n
                 attemptInsert i
@@ -77,13 +73,13 @@ planDay tim@(LocalTime day t) ts' =
                   else attemptInsert 0
       dummyTask n ti =
         Task (Just $ TimeRange ti ti) 0 0 day n Nothing 0 [] Nothing
-    in filter ((/= 0) . view identifier) $ toList $ foldr
+   in filter ((/= 0) . view identifier) $
+      toList $
+      foldr
         f
-        (fromList
-           [ dummyTask "Now" t
-           , dummyTask "Midnight" $ TimeOfDay 23 59 59
-           ])
+        (fromList [dummyTask "Now" t, dummyTask "Midnight" $ TimeOfDay 23 59 59])
         xs
+
 init' :: [a] -> [a]
 init' [] = []
 init' xs = init xs
