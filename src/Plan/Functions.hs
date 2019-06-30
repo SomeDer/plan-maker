@@ -119,7 +119,7 @@ startWork i = do
     then throwError "Already working on this task"
     else if isJust $ item ^. scheduled
            then throwError "This is an event, not a task"
-           else return $ "Starting task '" <> item ^. name <> "'"
+           else return $ "Starting task " <> show (item ^. name)
 
 startNext ::
      ( MonadError String m
