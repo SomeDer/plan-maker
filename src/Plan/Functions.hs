@@ -9,7 +9,6 @@ import Control.Monad.State
 import Data.Bool
 import Data.List
 import Data.Maybe
-import Data.Set (toList)
 import Data.Time
 import Data.Yaml
 import Plan.Env
@@ -122,6 +121,20 @@ startWork i = do
            then throwError "This is an event, not a task"
            else return $ "Starting task '" <> item ^. name <> "'"
 
+startNext ::
+     ( MonadError String m
+     , MonadState Config m
+     , MonadReader s m
+     , HasTime s LocalTime
+     )
+  => m String
+startNext = do
+  env <- ask
+  c <- get
+  _ <- printPlan
+  let t = head $ planDay (env ^. time) (c ^. tasks)
+  startWork $ fromIntegral $ t ^. identifier
+
 stopWork ::
      ( MonadError String m
      , MonadReader s m
@@ -201,8 +214,7 @@ printPlan = do
   env <- ask
   c <- get
   let tim@(LocalTime day t) = env ^. time
-      finished =
-        fst $ finishedUnfinished tim $ c ^. tasks
+      finished = fst $ finishedUnfinished tim $ c ^. tasks
       toRemove =
         flip filter (c ^. tasks) $ \x ->
           day > (x ^. deadline) || x ^. timeNeeded <= 0
@@ -231,7 +243,7 @@ printPlan = do
         where f = take 5 . show
       Nothing -> return ""
   c' <- get
-  let d = toList $ planDay tim (c' ^. tasks)
+  let d = planDay tim (c' ^. tasks)
   fmap (init' . unlines . filter (/= "")) $
     if null toRemove
       then if null finished && length d <= 2

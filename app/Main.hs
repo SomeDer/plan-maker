@@ -90,7 +90,7 @@ opts =
   command "rm" (info (removeItem <$> idOpt) (progDesc "Remove task")) <>
   command
     "start"
-    (info (startWork <$> idOpt) (progDesc "Start working on a task")) <>
+    (info (pure startNext) (progDesc "Start working on a task")) <>
   command "stop" (info (stopWork <$> idOpt) (progDesc "Stop working on a task"))
 
 main :: IO ()

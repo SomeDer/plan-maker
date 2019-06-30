@@ -5,7 +5,7 @@ module Plan.Plan where
 import Control.Lens
 import Data.List (sortOn, partition)
 import Data.Maybe
-import Data.Set (Set, elemAt, fromList, insert)
+import Data.Set (elemAt, fromList, insert, toList)
 import Data.Time
 import Plan.Task
 import Plan.TimeRange
@@ -39,7 +39,7 @@ timeNeededToday (LocalTime day t) n =
   where
     daysLeft = diffDays (n ^. deadline) day + 1
 
-planDay :: LocalTime -> [Task] -> Set Task
+planDay :: LocalTime -> [Task] -> [Task]
 planDay tim@(LocalTime day t) ts' =
   let xs =
         sortOn (view importance) $ snd $ finishedUnfinished tim ts'
@@ -77,7 +77,7 @@ planDay tim@(LocalTime day t) ts' =
                   else attemptInsert 0
       dummyTask n ti =
         Task (Just $ TimeRange ti ti) 0 0 day n Nothing 0 [] Nothing
-   in foldr
+    in filter ((/= 0) . view identifier) $ toList $ foldr
         f
         (fromList
            [ dummyTask "Now" t
