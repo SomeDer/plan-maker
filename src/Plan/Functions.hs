@@ -158,6 +158,19 @@ stopWork i = do
       return $ "Stopping task " <> show (item ^. name)
     Nothing -> throwError "You are not working on this"
 
+stopAll ::
+     ( MonadState Config m
+     , MonadError String m
+     , HasTime s LocalTime
+     , MonadReader s m
+     )
+  => m String
+stopAll = do
+  c <- get
+  fmap (init . unlines) $
+    forM (filter (isJust . view workingFrom) $ c ^. tasks) $
+    stopWork . fromIntegral . view identifier
+
 noSuchIndex :: (MonadError String m, Show a1) => a1 -> m a2
 noSuchIndex i = throwError $ "There is no task/event with index " <> show i
 
