@@ -12,6 +12,7 @@ import Plan.Task
 import Plan.TimeRange
 import Test.Hspec
 import Test.QuickCheck
+import TestData
 
 taskWithId1 :: [Task] -> Task
 taskWithId1 = head . filter ((== 1) . view identifier)
@@ -38,6 +39,16 @@ spec = do
           shouldSatisfy c $ \x ->
             null (x ^. tasks) ||
             isJust (taskWithId1 (x ^. tasks) ^. workingFrom)
+  describe "Starting next task" $ do
+    it "starts first of simple tasks" $ do
+      (Right r, _) <- runMonads' startNext con1 $ Env con1 baseSit
+      r `shouldBe` "Starting task \"C\""
+    it "considers task importance" $ do
+      (Right r, _) <- runMonads' startNext con2 $ Env con2 baseSit
+      r `shouldBe` "Starting task \"A\""
+    it "does not start finished tasks" $ do
+      (Right r, _) <- runMonads' startNext con5 $ Env con5 baseSit
+      r `shouldBe` "Starting task \"B\""
   describe "Stopping tasks" $ do
     it "fails if workingFrom doesn't exist" $
       property $ \(c, s) -> do
