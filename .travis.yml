@@ -18,10 +18,10 @@ before_install:
   xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 
 install:
-- stack --no-terminal --install-ghc test --only-dependencies
+- stack test
 
 script:
-- stack --no-terminal test --haddock --no-haddock-deps
+- stack test
 
 before_deploy:
 - export TO_RELEASE=$(stack exec -- which plan)

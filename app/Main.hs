@@ -8,7 +8,6 @@ import Options.Applicative
 import Plan.Env
 import Plan.Event
 import Plan.Functions
-import Plan.Plan
 import Plan.Task
 
 nameOpt :: Parser String
@@ -91,8 +90,8 @@ opts =
   command "rm" (info (removeItem <$> idOpt) (progDesc "Remove task")) <>
   command
     "start"
-    (info (startWork <$> idOpt) (progDesc "Start working on a task")) <>
-  command "stop" (info (stopWork <$> idOpt) (progDesc "Stop working on a task"))
+    (info (pure startNext) (progDesc "Start working on the next task")) <>
+  command "stop" (info (pure stopAll) (progDesc "Stop working on all tasks"))
 
 main :: IO ()
 main = execParser (info (opts <**> helper) idm) >>= runMonads
